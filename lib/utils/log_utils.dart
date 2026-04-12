@@ -4,7 +4,7 @@ import 'package:path_provider/path_provider.dart';
 /// 日志路径工具类
 /// 统一管理日志目录路径，确保核心写入和页面读取使用相同的路径
 class LogUtils {
-  /// 获取日���目录路径
+  /// 获取日志目录路径
   ///
   /// 不同平台的日志目录：
   /// - Android/iOS: 应用文档目录/logs

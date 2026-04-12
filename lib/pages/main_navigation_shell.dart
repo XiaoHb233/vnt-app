@@ -17,7 +17,7 @@ import 'package:vnt_app/utils/responsive_utils.dart';
 import 'dart:isolate';
 import 'package:vnt_app/src/rust/api/vnt_api.dart';
 
-/// 主导航框�?- 响应式布局，支持侧边栏和底部导�?class MainNavigationShell extends StatefulWidget {
+/// 主导航框架 - 响应式布局，支持侧边栏和底部导航class MainNavigationShell extends StatefulWidget {
   final VoidCallback? onThemeChanged;
 
   const MainNavigationShell({
@@ -55,16 +55,16 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   Future<void> _autoConnect() async {
     final dataPersistence = DataPersistence();
 
-    // 检查是否从磁贴启动（仅 Android�?    bool isTileStart = false;
+    // 检查是否从磁贴启动（仅 Android）    bool isTileStart = false;
     if (Platform.isAndroid) {
       try {
         isTileStart = await VntAppCall.isTileStart();
       } catch (e) {
-        debugPrint('检查磁贴启动状态失�? $e');
+        debugPrint('检查磁贴启动状态失败 $e');
       }
     }
 
-    // 如果不是从磁贴启动，检查自动连接设�?    if (!isTileStart) {
+    // 如果不是从磁贴启动，检查自动连接设置    if (!isTileStart) {
       final autoConnect = await dataPersistence.loadAutoConnect() ?? false;
       if (!autoConnect) return;
     }
@@ -84,7 +84,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       }
     }
 
-    // 如果没有磁贴配置key，使用默认配�?    if (targetKey == null || targetKey.isEmpty) {
+    // 如果没有磁贴配置key，使用默认配置    if (targetKey == null || targetKey.isEmpty) {
       targetKey = await dataPersistence.loadDefaultKey();
       debugPrint('使用默认配置key: $targetKey');
     }
@@ -169,7 +169,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               _selectedConfig = config;
             });
             showTopToast(context, '[${config.configName}] 连接成功', isSuccess: true);
-            // 连接成功，更新磁贴和小组件状�?            if (Platform.isAndroid) {
+            // 连接成功，更新磁贴和小组件状态            if (Platform.isAndroid) {
               VntAppCall.updateWidgetAndTile(true);
             }
             // 更新系统托盘
@@ -182,9 +182,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             onece = false;
             Navigator.of(context).pop(); // 关闭连接中对话框
           }
-          // 统一显示"服务已停�?提示
-          showTopToast(context, '[${config.configName}] 服务已停�?, isSuccess: false);
-          // 服务停止，更新磁贴和小组件状�?          if (Platform.isAndroid) {
+          // 统一显示"服务已停止"提示
+          showTopToast(context, '[${config.configName}] 服务已停止, isSuccess: false);
+          // 服务停止，更新磁贴和小组件状态          if (Platform.isAndroid) {
             VntAppCall.updateWidgetAndTile(vntManager.hasConnection());
           }
           // 更新系统托盘
@@ -198,7 +198,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           vntManager.remove(config.itemKey);
         }
         _handleConnectionError(msg, config.configName);
-        // 连接错误，更新磁贴和小组件状�?        if (Platform.isAndroid) {
+        // 连接错误，更新磁贴和小组件状态        if (Platform.isAndroid) {
           VntAppCall.updateWidgetAndTile(vntManager.hasConnection());
         }
         // 更新系统托盘
@@ -210,7 +210,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           Navigator.of(context).pop(); // 关闭连接中对话框
           vntManager.remove(config.itemKey);
           showTopToast(context, '[${config.configName}] 连接超时 ${msg.address}', isSuccess: false);
-          // 连接超时，更新磁贴和小组件状�?          if (Platform.isAndroid) {
+          // 连接超时，更新磁贴和小组件状态          if (Platform.isAndroid) {
             VntAppCall.updateWidgetAndTile(vntManager.hasConnection());
           }
           // 更新系统托盘
@@ -243,16 +243,16 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         errorMessage = '[$configName] 连接断开';
         break;
       case RustErrorType.addressExhausted:
-        errorMessage = '[$configName] 地址已用�?;
+        errorMessage = '[$configName] 地址已用完;
         break;
       case RustErrorType.ipAlreadyExists:
-        errorMessage = '[$configName] IP已存�?;
+        errorMessage = '[$configName] IP已存在;
         break;
       case RustErrorType.invalidIp:
         errorMessage = '[$configName] 无效的IP';
         break;
       case RustErrorType.localIpExists:
-        errorMessage = '[$configName] 本地IP已存�?;
+        errorMessage = '[$configName] 本地IP已存在;
         break;
       default:
         errorMessage = '[$configName] 未知错误';
@@ -286,7 +286,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       );
       
       if (success) {
-        // iOS VPN连接成功，更新UI状�?        setState(() {
+        // iOS VPN连接成功，更新UI状态        setState(() {
           _selectedConfig = config;
         });
         
@@ -335,13 +335,13 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           if (Platform.isWindows || Platform.isMacOS || Platform.isLinux)
             const CustomTitleBar(),
 
-          // 主内容区�?          Expanded(
+          // 主内容区域          Expanded(
             child: Row(
               children: [
-                // 侧边导航栏（宽屏显示�?                if (isWideScreen || isMediumScreen)
+                // 侧边导航栏（宽屏显示）                if (isWideScreen || isMediumScreen)
                   _buildSideNavigation(isDark, isWideScreen),
 
-                // 主内容区�?                Expanded(
+                // 主内容区域                Expanded(
                   child: _buildPageContent(),
                 ),
               ],
@@ -349,7 +349,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           ),
         ],
       ),
-      // 底部导航栏（窄屏显示�?      bottomNavigationBar: (!isWideScreen && !isMediumScreen)
+      // 底部导航栏（窄屏显示）      bottomNavigationBar: (!isWideScreen && !isMediumScreen)
           ? _buildBottomNavigation(isDark)
           : null,
     );
@@ -360,18 +360,18 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
-    // 根据屏幕高度自动缩放所有尺寸，避免太小或太大出现滚�?    // 基准高度�?00px，高度越小缩放比例越小，高度越大缩放比例越大
+    // 根据屏幕高度自动缩放所有尺寸，避免太小或太大出现滚✓     // 基准高度 800px，高度越小缩放比例越小，高度越大缩放比例越大
     double heightScale;
     if (screenHeight >= 900) {
-      heightScale = 1.2;  // 超大屏幕：放�?0%
+      heightScale = 1.2;  // 超大屏幕：放大 20%
     } else if (screenHeight >= 700) {
-      heightScale = 1.0;  // 标准屏幕�?00%
+      heightScale = 1.0;  // 标准屏幕 100%
     } else if (screenHeight >= 600) {
-      heightScale = 0.85; // 中等屏幕：缩�?5%
+      heightScale = 0.85; // 中等屏幕：缩小 15%
     } else if (screenHeight >= 500) {
       heightScale = 0.75; // 小屏幕：缩小25%
     } else {
-      heightScale = 0.65; // 超小屏幕：缩�?5%
+      heightScale = 0.65; // 超小屏幕：缩小 15%
     }
 
     // 根据屏幕高度动态调整导航栏宽度
@@ -423,7 +423,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                       height: logoSize,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
-                        // 如果图片加载失败，显示默认图�?                        return Container(
+                        // 如果图片加载失败，显示默认图标                        return Container(
                           width: logoSize,
                           height: logoSize,
                           decoration: BoxDecoration(
@@ -457,7 +457,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             ),
             SizedBox(height: navSpacing),
 
-            // 导航�?            Expanded(
+            // 导航菜单            Expanded(
               child: ListView.builder(
                 padding: EdgeInsets.symmetric(horizontal: navItemPadding),
                 itemCount: _navItems.length,
@@ -644,7 +644,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   Widget _buildPageContent() {
     final themeProvider = ThemeProvider.of(context);
 
-    // 使用 IndexedStack 保持页面状态，避免切换时重建页�?    return IndexedStack(
+    // 使用 IndexedStack 保持页面状态，避免切换时重建页面    return IndexedStack(
       index: _selectedIndex,
       children: [
         // 0: 仪表盘
@@ -655,7 +655,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             // 获取所有连接的key
             final keys = vntManager.map.keys.toList();
 
-            // 断开所有连�?            for (var key in keys) {
+            // 断开所有连接            for (var key in keys) {
               await vntManager.remove(key);
             }
 
@@ -708,13 +708,13 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           onConfigSelected: (config) {
             setState(() {
               _selectedConfig = config;
-              _selectedIndex = 1; // 跳转到房间页�?            });
+              _selectedIndex = 1; // 跳转到房间页面            });
           },
           onRefreshCallback: (callback) {
             _refreshConfigList = callback;
           },
           onDataChanged: () {
-            // 当配置数据改变时，刷新设置页�?            _refreshSettings?.call();
+            // 当配置数据改变时，刷新设置页面            _refreshSettings?.call();
           },
         ),
         // 3: 内网访问

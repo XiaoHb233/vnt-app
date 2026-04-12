@@ -73,7 +73,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
 
 
-  // 导出所有配�?  Future<void> _exportAllConfigs() async {
+  // 导出所有配置  Future<void> _exportAllConfigs() async {
     try {
       if (Platform.isAndroid) {
         final directory = await getTemporaryDirectory();
@@ -116,7 +116,7 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  // 导入所有配�?  Future<void> _importAllConfigs() async {
+  // 导入所有配置  Future<void> _importAllConfigs() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.any,
@@ -138,7 +138,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
       if (jsonData.containsKey('config') && !jsonData.containsKey('configs')) {
         if (mounted) {
-          showTopToast(context, '这是单个组网配置文件，请在配置页面的导入按钮中导�?, isSuccess: false);
+          showTopToast(context, '这是单个组网配置文件，请在配置页面的导入按钮中导入, isSuccess: false);
         }
         return;
       }
@@ -245,7 +245,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
               Text(
-                '自定义应用设�?,
+                '自定义应用设置,
                 style: TextStyle(
                   fontSize: context.fontBody,
                   color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -335,7 +335,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                     Text(
-                      '选择应用的外观主�?,
+                      '选择应用的外观主题,
                       style: TextStyle(
                         fontSize: context.fontSmall,
                         color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -554,7 +554,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       _defaultKey = newValue;
                     });
                     _dataPersistence.saveDefaultKey(newValue);
-                    // 更新通知栏、磁贴、小组件显示最新配�?                    VntAppCall.updateWidgetAndTile(false);
+                    // 更新通知栏、磁贴、小组件显示最新配置                    VntAppCall.updateWidgetAndTile(false);
                     // 更新系统托盘（默认配置变化）
                     
                   }
@@ -568,7 +568,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   return DropdownMenuItem<String>(
                     value: item.$1,
                     child: Text(
-                      isSelected ? '�?${item.$2}' : item.$2,
+                      isSelected ? '✓ ${item.$2}' : item.$2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   );
@@ -606,7 +606,7 @@ class _SettingsPageState extends State<SettingsPage> {
           _buildSettingItem(
             isDark,
             icon: Icons.backup_outlined,
-            title: '备份所有配�?,
+            title: '备份所有配✓ ,
             subtitle: '将所有配置导出为文件',
             onTap: _exportAllConfigs,
           ),
@@ -615,14 +615,14 @@ class _SettingsPageState extends State<SettingsPage> {
             isDark,
             icon: Icons.restore,
             title: '恢复备份数据',
-            subtitle: '从备份文件恢复配�?,
+            subtitle: '从备份文件恢复配✓ ,
             onTap: _importAllConfigs,
           ),
           _buildDivider(isDark),
           _buildSettingItem(
             isDark,
             icon: Icons.delete_outline,
-            title: '清除所有数�?,
+            title: '清除所有数✓ ,
             subtitle: '删除所有配置和缓存',
             iconColor: AppTheme.errorColor,
             onTap: _showClearDataDialog,
@@ -773,7 +773,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                   Text(
-                    '自定义应用主题颜�?,
+                    '自定义应用主题颜✓ ,
                     style: TextStyle(
                       fontSize: context.fontSmall,
                       color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -819,7 +819,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (result != null) {
       themeProvider.setCustomThemeColor(result);
       if (mounted) {
-        showTopToast(context, '主题颜色已更�?, isSuccess: true);
+        showTopToast(context, '主题颜色已更✓ , isSuccess: true);
       }
     }
   }
@@ -834,13 +834,13 @@ class _SettingsPageState extends State<SettingsPage> {
         backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(context.cardRadius)),
         title: Text(
-          '清除所有数�?,
+          '清除所有数✓ ,
           style: TextStyle(
             color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
           ),
         ),
         content: Text(
-          '确定要清除所有数据吗？此操作将删除所有配置，且不可恢复�?,
+          '确定要清除所有数据吗？此操作将删除所有配置，且不可恢复✓ ,
           style: TextStyle(
             color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
           ),
@@ -947,7 +947,7 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
-    // 移动端使用更紧凑的高�?    final maxHeight = isMobile ? screenHeight * 0.7 : screenHeight * 0.85;
+    // 移动端使用更紧凑的高✓     final maxHeight = isMobile ? screenHeight * 0.7 : screenHeight * 0.85;
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -964,7 +964,7 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 标题�?            Container(
+            // 标题✓             Container(
               padding: ResponsiveUtils.padding(context, all: context.spacingMedium),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -1029,7 +1029,7 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
                 ],
               ),
             ),
-            // TAB�?            Container(
+            // TAB✓             Container(
               padding: EdgeInsets.symmetric(
                 horizontal: context.spacingMedium,
                 vertical: context.spacingSmall,
@@ -1042,7 +1042,7 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
                 dividerColor: widget.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
                 tabs: const [
                   Tab(text: '预设颜色'),
-                  Tab(text: '自定�?),
+                  Tab(text: '自定✓ ),
                 ],
               ),
             ),
@@ -1142,7 +1142,7 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
                 ),
                 child: Stack(
                   children: [
-                    // 颜色名称放在底部，避免被勾选图标遮�?                    Positioned(
+                    // 颜色名称放在底部，避免被勾选图标遮✓                     Positioned(
                       bottom: 2,
                       left: 0,
                       right: 0,
@@ -1234,7 +1234,7 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
             ),
             SizedBox(height: context.spacingMedium),
 
-            // 色相滚动�?            _buildSlider(
+            // 色相滚动✓             _buildSlider(
               label: '色相',
               value: hue,
               max: 360,
@@ -1261,7 +1261,7 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
 
             // 饱和度滚动条
             _buildSlider(
-              label: '饱和�?,
+              label: '饱和✓ ,
               value: saturation,
               max: 1,
               displayValue: (saturation * 100).toInt().toString(),
@@ -1282,7 +1282,7 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
 
             // 透明度滚动条
             _buildSlider(
-              label: '透明�?,
+              label: '透明✓ ,
               value: opacity,
               max: 1,
               displayValue: (opacity * 100).toInt().toString(),
@@ -1301,7 +1301,7 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
             ),
             SizedBox(height: context.spacingMedium),
 
-            // 颜色值显�?            Container(
+            // 颜色值显✓             Container(
               padding: EdgeInsets.all(context.spacingSmall),
               decoration: BoxDecoration(
                 color: widget.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
@@ -1313,7 +1313,7 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '颜色�?,
+                        '颜色✓ ,
                         style: TextStyle(
                           fontSize: context.fontSmall,
                           color: widget.isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,

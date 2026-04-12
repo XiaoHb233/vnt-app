@@ -44,13 +44,13 @@ class _ConfigListPageState extends State<ConfigListPage> {
   void initState() {
     super.initState();
     _loadConfigs();
-    // 将刷新方法传递给父组�?    widget.onRefreshCallback?.call(_loadConfigs);
+    // 将刷新方法传递给父组✓     widget.onRefreshCallback?.call(_loadConfigs);
   }
 
   @override
   void didUpdateWidget(ConfigListPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // 当页面重新显示时，重新加载配�?    _loadConfigs();
+    // 当页面重新显示时，重新加载配✓     _loadConfigs();
   }
 
   Future<void> _loadConfigs() async {
@@ -89,7 +89,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
                 ),
               ),
 
-              // 操作按钮�?              SliverToBoxAdapter(
+              // 操作按钮✓               SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: isWideScreen ? context.spacingXLarge : context.spacingMedium),
                   child: _buildActionRow(isDark),
@@ -142,7 +142,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
                               widget.onDataChanged?.call();
                             },
                             proxyDecorator: (child, index, animation) {
-                              // 拖动时的视觉效果 - 提供明显的反�?                              return AnimatedBuilder(
+                              // 拖动时的视觉效果 - 提供明显的反✓                               return AnimatedBuilder(
                                 animation: animation,
                                 builder: (BuildContext context, Widget? child) {
                                   final double animValue = Curves.easeInOut.transform(animation.value);
@@ -208,7 +208,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
                 ),
               ),
               Text(
-                '${_configs.length} 个配�?,
+                '${_configs.length} 个配✓ ,
                 style: TextStyle(
                   fontSize: context.fontBody,
                   color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -320,7 +320,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
           ),
           SizedBox(height: context.spacingXSmall),
           Text(
-            '点击上方按钮新建或导入一个组网配�?,
+            '点击上方按钮新建或导入一个组网配✓ ,
             style: TextStyle(
               fontSize: context.fontBody,
               color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -339,7 +339,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
       decoration: BoxDecoration(
         color: isConnected
             ? (isDark
-                ? ColorUtils.backgroundForDarkMode(primaryColor) // 暗黑模式：使用主题色生成的暗色背�?                : ColorUtils.backgroundForLightMode(primaryColor)) // 日间模式：使用主题色生成的浅色背�?            : (isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground),
+                ? ColorUtils.backgroundForDarkMode(primaryColor) // 暗黑模式：使用主题色生成的暗色背✓                 : ColorUtils.backgroundForLightMode(primaryColor)) // 日间模式：使用主题色生成的浅色背✓             : (isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground),
         borderRadius: BorderRadius.circular(context.cardRadius),
         boxShadow: [
           BoxShadow(
@@ -383,7 +383,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                // 已连接标�?                if (isConnected)
+                // 已连接标✓                 if (isConnected)
                   Container(
                     padding: EdgeInsets.symmetric(
                       horizontal: context.spacingSmall,
@@ -394,7 +394,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
                       borderRadius: BorderRadius.circular(context.cardRadius),
                     ),
                     child: Text(
-                      '已连�?,
+                      '已连✓ ,
                       style: TextStyle(
                         fontSize: context.fontSmall,
                         fontWeight: FontWeight.w500,
@@ -427,7 +427,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
               isDark,
               isConnected,
               Icons.dns_outlined,
-              '服务�?,
+              '服务✓ ,
               config.serverAddress,
             ),
             SizedBox(height: context.spacingMedium),
@@ -475,7 +475,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
                   Icons.file_upload_outlined,
                   () => _exportSingleConfig(config),
                 ),
-                // 未连接时显示编辑和删除按�?                if (!isConnected) ...[
+                // 未连接时显示编辑和删除按✓                 if (!isConnected) ...[
                   SizedBox(width: context.spacingXSmall),
                   // 编辑按钮
                   _buildIconButton(
@@ -502,19 +502,19 @@ class _ConfigListPageState extends State<ConfigListPage> {
     );
   }
 
-  // 配置信息�?  Widget _buildConfigInfoRow(
+  // 配置信息✓   Widget _buildConfigInfoRow(
     bool isDark,
     bool isConnected,
     IconData icon,
     String label,
     String value,
   ) {
-    // 暗黑模式下已连接配置使用更亮的颜�?    final textColor = (isConnected && isDark)
+    // 暗黑模式下已连接配置使用更亮的颜✓     final textColor = (isConnected && isDark)
         ? Colors.white.withOpacity(0.7) // 暗黑模式已连接：半透明白色
         : (isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary);
 
     final valueColor = (isConnected && isDark)
-        ? Colors.white // 暗黑模式已连接：纯白�?        : (isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary);
+        ? Colors.white // 暗黑模式已连接：纯白✓         : (isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary);
 
     return Row(
       children: [
@@ -648,7 +648,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
     );
   }
 
-  // 添加或编辑配�?  void _addOrEditConfig(NetworkConfig? config, int index) async {
+  // 添加或编辑配✓   void _addOrEditConfig(NetworkConfig? config, int index) async {
     if (config != null) {
       if (vntManager.hasConnectionItem(config.itemKey)) {
         showTopToast(context, '正在连接中的配置不能编辑', isSuccess: false);
@@ -656,7 +656,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
       }
     }
 
-    // 使用对话框形式显示配置页�?    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // 使用对话框形式显示配置页✓     final isDark = Theme.of(context).brightness == Brightness.dark;
     final maxWidth = context.w(600);
     final maxHeight = context.w(800);
     final insetPadding = context.spacingMedium;
@@ -695,13 +695,13 @@ class _ConfigListPageState extends State<ConfigListPage> {
       _dataPersistence.saveData(_configs);
       // 通知设置页面刷新配置列表
       widget.onDataChanged?.call();
-      // 同步更新通知栏、磁贴、小组件（新�?编辑可能影响默认配置�?      VntAppCall.updateWidgetAndTile(false);
+      // 同步更新通知栏、磁贴、小组件（新✓ 编辑可能影响默认配置✓       VntAppCall.updateWidgetAndTile(false);
       // 更新系统托盘（配置列表变化）
       
     }
   }
 
-  // 切换连接状�?  Future<void> _toggleConnection(NetworkConfig config) async {
+  // 切换连接状✓   Future<void> _toggleConnection(NetworkConfig config) async {
     final isConnected = vntManager.hasConnectionItem(config.itemKey);
 
     if (isConnected) {
@@ -722,7 +722,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
     }
     
     // 其他平台使用Rust直接连接
-    // 检查是否已有连�?    if (vntManager.hasConnection()) {
+    // 检查是否已有连✓     if (vntManager.hasConnection()) {
       if (!vntManager.supportMultiple()) {
         var lastConnectedConfig = vntManager.getOne()?.networkConfig;
         _showAlreadyConnectedDialog(lastConnectedConfig);
@@ -760,8 +760,8 @@ class _ConfigListPageState extends State<ConfigListPage> {
             onece = false;
             Navigator.of(context).popUntil((route) => route.isFirst);
           }
-          // 统一显示"服务已停�?提示
-          showTopToast(context, '[$configName] 服务已停�?, isSuccess: false);
+          // 统一显示"服务已停止"提示
+          showTopToast(context, '[$configName] 服务已停止, isSuccess: false);
           setState(() {});
           // 更新 Android 磁贴和小组件
           if (Platform.isAndroid) {
@@ -876,7 +876,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
             ),
           ),
           content: Text(
-            '已经建立了连�?,
+            '已经建立了连✓ ,
             style: TextStyle(
               color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
             ),
@@ -995,7 +995,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
           if (success) {
             showTopToast(context, '导出成功: $fileName', isSuccess: true);
           } else {
-            showTopToast(context, '导出已取�?, isSuccess: false);
+            showTopToast(context, '导出已取✓ , isSuccess: false);
           }
         }
       } else if (Platform.isIOS) {
@@ -1022,9 +1022,9 @@ class _ConfigListPageState extends State<ConfigListPage> {
           
           if (mounted) {
             if (result.status == ShareResultStatus.success) {
-              showTopToast(context, '配置已导�?, isSuccess: true);
+              showTopToast(context, '配置已导✓ , isSuccess: true);
             } else if (result.status == ShareResultStatus.dismissed) {
-              showTopToast(context, '操作已取�?, isSuccess: false);
+              showTopToast(context, '操作已取✓ , isSuccess: false);
             }
           }
         } catch (e) {
@@ -1080,7 +1080,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
         // 检查是否是全局备份文件
         if (jsonData.containsKey('configs')) {
           if (mounted) {
-            showTopToast(context, '这是全局备份文件，请在设置页面的"恢复备份数据"中导�?, isSuccess: false);
+            showTopToast(context, '这是全局备份文件，请在设置页面的"恢复备份数据"中导✓ , isSuccess: false);
           }
           return;
         }
@@ -1103,7 +1103,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
     }
   }
 
-  // 显示删除确认对话�?  void _showDeleteDialog(NetworkConfig config, int index) {
+  // 显示删除确认对话✓   void _showDeleteDialog(NetworkConfig config, int index) {
     if (vntManager.hasConnectionItem(config.itemKey)) {
       showTopToast(context, '正在连接中的配置不能删除', isSuccess: false);
       return;
@@ -1124,7 +1124,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
           ),
         ),
         content: Text(
-          '确定要删�?"${config.configName}" 吗？此操作不可恢复�?,
+          '确定要删✓ "${config.configName}" 吗？此操作不可恢复✓ ,
           style: TextStyle(
             color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
           ),
@@ -1162,7 +1162,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
     );
   }
 
-  // 显示断开连接确认对话�?  void _showDisconnectDialog(NetworkConfig config) {
+  // 显示断开连接确认对话✓   void _showDisconnectDialog(NetworkConfig config) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).primaryColor;
 
@@ -1209,7 +1209,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
 
               // 提示文本
               Text(
-                '是否断开�?\'${config.configName}\' 的组网连�?',
+                '是否断开✓ \'${config.configName}\' 的组网连✓ ',
                 style: TextStyle(
                   fontSize: context.fontBody,
                   color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -1246,7 +1246,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
                         // 执行断开连接
                         await vntManager.remove(config.itemKey);
 
-                        // 更新状�?                        if (mounted) {
+                        // 更新状✓                         if (mounted) {
                           setState(() {});
                         }
 
