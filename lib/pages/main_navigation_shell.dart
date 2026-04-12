@@ -725,7 +725,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           onConfigSelected: (config) {
             setState(() {
               _selectedConfig = config;
-              _selectedIndex = 1; // 跳转到房间页面            });
+              _selectedIndex = 1; // 跳转到房间页面
+            });
           },
           onRefreshCallback: (callback) {
             _refreshConfigList = callback;

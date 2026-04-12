@@ -88,7 +88,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
             }
             _latencyHistory[device.virtualIp]!.add(route.rt);
 
-            // 保持历史数据长度不超过最大            if (_latencyHistory[device.virtualIp]!.length > _maxHistoryLength) {
+            // 保持历史数据长度不超过最大
+            if (_latencyHistory[device.virtualIp]!.length > _maxHistoryLength) {
               _latencyHistory[device.virtualIp]!.removeAt(0);
             }
           }
@@ -124,7 +125,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
               child: _buildHeader(isDark, isWideScreen, hasConnection),
             ),
 
-            // Tab导航            if (hasConnection)
+            // Tab导航
+            if (hasConnection)
               Container(
                 margin: EdgeInsets.symmetric(horizontal: isWideScreen ? context.spacingXLarge : context.spacingMedium),
                 child: TabBar(
@@ -150,7 +152,7 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
                   indicatorSize: TabBarIndicatorSize.tab,
                   tabs: const [
                     Tab(text: '设备'),
-                    Tab(text: '聊天),
+                    Tab(text: '聊天'),
                     Tab(text: '路由'),
                   ],
                 ),
@@ -177,7 +179,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
 
   Widget _buildHeader(bool isDark, bool isWideScreen, bool hasConnection) {
     final primaryColor = Theme.of(context).primaryColor;
-    // 获取当前连接的配置名    String? configName;
+    // 获取当前连接的配置名
+    String? configName;
     if (hasConnection) {
       final allVnts = vntManager.map;
       for (var entry in allVnts.entries) {
@@ -226,8 +229,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
               ),
               Text(
                 hasConnection
-                    ? (configName != null ? '已连$configName' : '已连接网)
-                    : '未连,
+                    ? (configName != null ? '已连$configName' : '已连接网络')
+                    : '未连接',
                 style: TextStyle(
                   fontSize: context.fontBody,
                   color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -236,7 +239,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
             ],
           ),
         ),
-        // 顶部图标        if (hasConnection) ...[
+        // 顶部图标
+        if (hasConnection) ...[
           // 当前设备信息图标
           IconButton(
             onPressed: () => _showCurrentDeviceDialog(),
@@ -272,7 +276,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
   // 设备Tab
   Widget _buildDevicesTab(bool isDark, bool isWideScreen) {
     final primaryColor = Theme.of(context).primaryColor;
-    // 分离在线和离线设    final onlineDevices = _devices.where((device) => _isDeviceOnline(device.status)).toList();
+    // 分离在线和离线设备
+    final onlineDevices = _devices.where((device) => _isDeviceOnline(device.status)).toList();
     final offlineDevices = _devices.where((device) => !_isDeviceOnline(device.status)).toList();
 
     return RefreshIndicator(
@@ -335,7 +340,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 分组标题        InkWell(
+        // 分组标题
+        InkWell(
           onTap: onToggle,
           borderRadius: BorderRadius.circular(context.spacingXSmall),
           child: Container(
@@ -447,7 +453,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
 
   // 构建路由列表
   List<Widget> _buildRouteList(bool isDark) {
-    // 收集所有路由信    List<Map<String, dynamic>> allRoutes = [];
+    // 收集所有路由信息
+    List<Map<String, dynamic>> allRoutes = [];
 
     final allVnts = vntManager.map;
     for (var entry in allVnts.entries) {
@@ -491,7 +498,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
     return routeWidgets;
   }
 
-  // 根据延迟值获取颜  Color _getLatencyColor(int latency) {
+  // 根据延迟值获取颜色
+  Color _getLatencyColor(int latency) {
     if (latency <= 50) {
       return Colors.green;
     } else if (latency <= 100) {
@@ -506,7 +514,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
   // IP地址比较函数 - 用于排序
   int _compareIpAddresses(String ip1, String ip2) {
     try {
-      // 分割IP地址的各个部      final parts1 = ip1.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+      // 分割IP地址的各个部分
+      final parts1 = ip1.split('.').map((e) => int.tryParse(e) ?? 0).toList();
       final parts2 = ip2.split('.').map((e) => int.tryParse(e) ?? 0).toList();
 
       // 逐段比较
@@ -522,7 +531,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
     }
   }
 
-  // 重新设计的设备卡- 根据UI设计  Widget _buildDeviceCard(RustPeerClientInfo device, bool isDark) {
+  // 重新设计的设备卡- 根据UI设计
+  Widget _buildDeviceCard(RustPeerClientInfo device, bool isDark) {
     final isOnline = _isDeviceOnline(device.status);
     final primaryColor = Theme.of(context).primaryColor;
 
@@ -627,7 +637,7 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
                               InkWell(
                                 onTap: () {
                                   Clipboard.setData(ClipboardData(text: device.virtualIp));
-                                  showTopToast(context, '${device.virtualIp} 已复, isSuccess: true);
+                                  showTopToast(context, '${device.virtualIp} 已复制', isSuccess: true);
                                 },
                                 child: Icon(
                                   Icons.copy,
@@ -669,7 +679,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
 
                 SizedBox(height: context.spacingSmall),
 
-                // 延迟趋势                if (latencyData.isNotEmpty)
+                // 延迟趋势
+                if (latencyData.isNotEmpty)
                   Container(
                     height: context.w(60),
                     decoration: BoxDecoration(
@@ -721,7 +732,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
 
                     const SizedBox(width: 8),
 
-                    // 状态指                    Row(
+                    // 状态指示器
+                    Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
@@ -968,7 +980,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
     );
   }
 
-  // 无路由视  Widget _buildNoRoutesView(bool isDark) {
+  // 无路由视图
+  Widget _buildNoRoutesView(bool isDark) {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
@@ -1002,7 +1015,7 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
     String label = '未知';
     Color color = AppTheme.lightTextSecondary;
 
-    // 尝试vntManager 获取路由信息
+    // 尝试从 vntManager 获取路由信息
     final allVnts = vntManager.map;
     for (var entry in allVnts.entries) {
       if (entry.value.isClosed()) continue;
@@ -1060,7 +1073,7 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
           ),
           const SizedBox(height: 24),
           Text(
-            '未加入任何组,
+            '未加入任何组',
             style: TextStyle(
               fontSize: context.fontLarge,
               fontWeight: FontWeight.w600,
@@ -1069,7 +1082,7 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
           ),
           const SizedBox(height: 8),
           Text(
-            '请先在配置页面连接一个网,
+            '请先在配置页面连接一个网络',
             style: TextStyle(
               fontSize: context.fontBody,
               color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -1121,7 +1134,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
     final isOnline = _isDeviceOnline(device.status);
     final primaryColor = Theme.of(context).primaryColor;
 
-    // 获取设备的详细信    String? natType;
+    // 获取设备的详细信息
+    String? natType;
     List<String> publicIps = [];
     String? localIpv4;
     String? ipv6;
@@ -1582,7 +1596,7 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
                 InkWell(
                   onTap: () {
                     Clipboard.setData(ClipboardData(text: value));
-                    showTopToast(context, '$value 已复, isSuccess: true);
+                    showTopToast(context, '$value 已复制', isSuccess: true);
                   },
                   child: Icon(
                     Icons.copy,
@@ -1598,7 +1612,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
     );
   }
 
-  // 显示当前设备信息对话  void _showCurrentDeviceDialog() {
+  // 显示当前设备信息对话框
+  void _showCurrentDeviceDialog() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).primaryColor;
 
@@ -1736,7 +1751,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
     );
   }
 
-  // 显示网络配置详情对话  void _showConfigDialog() {
+  // 显示网络配置详情对话框
+  void _showConfigDialog() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).primaryColor;
 
@@ -1873,10 +1889,12 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
     );
   }
 
-  // 显示断开连接确认对话  void _showDisconnectDialog() {
+  // 显示断开连接确认对话框
+  void _showDisconnectDialog() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // 获取当前连接的配置名    String? configName;
+    // 获取当前连接的配置名
+    String? configName;
     final allVnts = vntManager.map;
     for (var entry in allVnts.entries) {
       final vntBox = entry.value;
@@ -1973,14 +1991,16 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
                         final allVnts = vntManager.map;
                         final keys = allVnts.keys.toList();
 
-                        // 断开所有连                        for (var key in keys) {
+                        // 断开所有连接
+                        for (var key in keys) {
                           await vntManager.remove(key);
                         }
 
                         // 清空延迟历史数据
                         _clearLatencyHistory();
 
-                        // 更新 Android 磁贴、小组件和通知                        if (Platform.isAndroid) {
+                        // 更新 Android 磁贴、小组件和通知
+                        if (Platform.isAndroid) {
                           VntAppCall.updateWidgetAndTile(false);
                         }
 
@@ -2016,7 +2036,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
   }
 }
 
-// 延迟图表绘制class _LatencyChartPainter extends CustomPainter {
+// 延迟图表绘制
+class _LatencyChartPainter extends CustomPainter {
   final List<int> data;
   final Color color;
 
@@ -2038,7 +2059,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
     final path = Path();
     final fillPath = Path();
 
-    // 找到最大值和最小    final maxValue = data.reduce((a, b) => a > b ? a : b).toDouble();
+    // 找到最大值和最小值
+    final maxValue = data.reduce((a, b) => a > b ? a : b).toDouble();
     final minValue = data.reduce((a, b) => a < b ? a : b).toDouble();
     final range = maxValue - minValue;
 
@@ -2062,7 +2084,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
     fillPath.lineTo(size.width, size.height);
     fillPath.close();
 
-    // 绘制填充和线    canvas.drawPath(fillPath, fillPaint);
+    // 绘制填充和线条
+    canvas.drawPath(fillPath, fillPaint);
     canvas.drawPath(path, paint);
   }
 
