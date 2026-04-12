@@ -9,6 +9,7 @@ import 'package:vnt_app/src/rust/api/vnt_api.dart';
 import 'package:vnt_app/utils/toast_utils.dart';
 import 'package:vnt_app/utils/responsive_utils.dart';
 import 'package:json2yaml/json2yaml.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// 房间页面 - 显示已连接网络的设备列表、聊天、路由
 class RoomPage extends StatefulWidget {
@@ -35,6 +36,9 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
   final Map<String, List<int>> _latencyHistory = {};
   final int _maxHistoryLength = 30; // 保留最近30个数据点
 
+  // 已删除设备列表 - 用于过滤离线设备
+  Set<String> _deletedDevices = {};
+
   // 清空延迟历史数据（仅在手动断开连接时调用）
   void _clearLatencyHistory() {
     _latencyHistory.clear();
@@ -48,10 +52,34 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _loadDeletedDevices();
     _updateDevices();
     _timer = Timer.periodic(const Duration(seconds: 2), (_) {
       _updateDevices();
     });
+  }
+
+  // 加载已删除设备列表
+  Future<void> _loadDeletedDevices() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final deletedList = prefs.getStringList('deleted_devices') ?? [];
+      setState(() {
+        _deletedDevices = deletedList.toSet();
+      });
+    } catch (e) {
+      // 忽略错误
+    }
+  }
+
+  // 保存已删除设备列表
+  Future<void> _saveDeletedDevices() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('deleted_devices', _deletedDevices.toList());
+    } catch (e) {
+      // 忽略错误
+    }
   }
 
   @override
@@ -96,6 +124,21 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
         }
       }
     }
+
+    // 检查是否有设备重新上线，如果有则从删除列表中移除
+    final onlineDeviceIps = devices
+        .where((device) => _isDeviceOnline(device.status))
+        .map((device) => device.virtualIp)
+        .toSet();
+    
+    final reOnlineDevices = _deletedDevices.intersection(onlineDeviceIps);
+    if (reOnlineDevices.isNotEmpty) {
+      _deletedDevices.removeAll(reOnlineDevices);
+      _saveDeletedDevices();
+    }
+
+    // 过滤掉已删除的设备
+    devices = devices.where((device) => !_deletedDevices.contains(device.virtualIp)).toList();
 
     // 按IP地址排序（从小到大）
     devices.sort((a, b) => _compareIpAddresses(a.virtualIp, b.virtualIp));
@@ -1279,6 +1322,24 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                       ),
+                      // 删除设备按钮（仅离线设备）
+                      if (!isOnline)
+                        IconButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            Future.delayed(const Duration(milliseconds: 100), () {
+                              _deleteDevice(device);
+                            });
+                          },
+                          icon: Icon(
+                            Icons.delete,
+                            size: isLandscape ? 20 : 24,
+                            color: Colors.red[400],
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          tooltip: '删除设备',
+                        ),
                     ],
                   ),
                 ),
@@ -1562,6 +1623,93 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
           ),
         ),
       ],
+    );
+  }
+
+  // 删除设备方法
+  void _deleteDevice(RustPeerClientInfo device) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final primaryColor = Theme.of(context).primaryColor;
+
+        return AlertDialog(
+          backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.delete_forever,
+                color: Colors.red[400],
+                size: 24,
+              ),
+              SizedBox(width: 12),
+              Text(
+                '删除设备',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            '确定要删除设备 "${device.name}" 吗？\n\n此操作将从列表中移除该设备，直到设备重新上线。',
+            style: TextStyle(
+              fontSize: 16,
+              color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                '取消',
+                style: TextStyle(
+                  color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                
+                try {
+                  // 将设备添加到已删除列表
+                  setState(() {
+                    _deletedDevices.add(device.virtualIp);
+                  });
+                  
+                  // 保存到本地存储
+                  await _saveDeletedDevices();
+                  
+                  // 清除该设备的延迟历史数据
+                  _latencyHistory.remove(device.virtualIp);
+                  
+                  // 刷新设备列表
+                  _updateDevices();
+                  
+                  showTopToast(context, '设备已从列表中移除', isSuccess: true);
+                } catch (e) {
+                  showTopToast(context, '删除失败：$e', isSuccess: false);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red[400],
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('删除'),
+            ),
+          ],
+        );
+      },
     );
   }
 
