@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vnt_app/theme/app_theme.dart';
 import 'package:vnt_app/vnt/vnt_manager.dart';
 import 'package:vnt_app/data_persistence.dart';
@@ -47,6 +48,9 @@ class _DashboardPageState extends State<DashboardPage> {
   int _offlineDeviceCount = 0;
   bool _isVirtualIpAutoAssigned = false; // 虚拟IP是否为服务器自动分配
   String _natType = ''; // NAT类型
+
+  // 已删除设备列表 - 用于过滤离线设备
+  Set<String> _deletedDevices = {};
 
   // 默认配置
   String _defaultConfigKey = '';
@@ -109,6 +113,7 @@ class _DashboardPageState extends State<DashboardPage> {
   void initState() {
     super.initState();
     _loadDefaultConfig();
+    _loadDeletedDevices();
     _updateStats();
     // 每2秒更新一次数据
     _timer = Timer.periodic(const Duration(seconds: 2), (_) {
@@ -116,6 +121,31 @@ class _DashboardPageState extends State<DashboardPage> {
       // 定期检查默认配置是否有变化
       _checkDefaultConfigChange();
     });
+  }
+
+  // 加载已删除设备列表
+  Future<void> _loadDeletedDevices() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final deletedList = prefs.getStringList('deleted_devices') ?? [];
+      if (mounted) {
+        setState(() {
+          _deletedDevices = deletedList.toSet();
+        });
+      }
+    } catch (e) {
+      // 忽略错误
+    }
+  }
+
+  // 保存已删除设备列表
+  Future<void> _saveDeletedDevices() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('deleted_devices', _deletedDevices.toList());
+    } catch (e) {
+      // 忽略错误
+    }
   }
 
   @override
@@ -229,10 +259,19 @@ class _DashboardPageState extends State<DashboardPage> {
       final vntBox = entry.value;
       if (!vntBox.isClosed()) {
         final devices = vntBox.peerDeviceList();
-        deviceCount += devices.length;
-
-        // 计算离线设备数
+        // 计算设备数（排除已删除的设备）
         for (var device in devices) {
+          if (!_deletedDevices.contains(device.virtualIp)) {
+            deviceCount++;
+          }
+        }
+
+        // 计算离线设备数（排除已删除的设备）
+        for (var device in devices) {
+          // 跳过已删除的设备
+          if (_deletedDevices.contains(device.virtualIp)) {
+            continue;
+          }
           if (device.status != 'Online') {
             offlineDeviceCount++;
           }
@@ -4115,6 +4154,85 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
+  // 删除设备方法（用于仪表盘设备列表）
+  void _deleteDeviceFromDashboard(String deviceName, String deviceIp) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.delete_forever,
+                color: Colors.red[400],
+                size: 24,
+              ),
+              SizedBox(width: 12),
+              Text(
+                '删除设备',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            '确定要删除设备 "$deviceName" 吗？\n\n此操作将从列表中移除该设备，直到设备重新上线。',
+            style: TextStyle(
+              fontSize: 16,
+              color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                '取消',
+                style: TextStyle(
+                  color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                try {
+                  setState(() {
+                    _deletedDevices.add(deviceIp);
+                  });
+                  await _saveDeletedDevices();
+                  showTopToast(context, '设备已从列表中移除', isSuccess: true);
+                  // 刷新设备列表弹窗
+                  Navigator.pop(context);
+                  Future.delayed(Duration(milliseconds: 100), () {
+                    _showDevicesDialog(Theme.of(context).brightness == Brightness.dark);
+                  });
+                } catch (e) {
+                  showTopToast(context, '删除失败：$e', isSuccess: false);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red[400],
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('删除'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   // 显示设备列表弹窗
   void _showDevicesDialog(bool isDark) {
     final primaryColor = Theme.of(context).primaryColor;
@@ -4129,6 +4247,10 @@ class _DashboardPageState extends State<DashboardPage> {
       if (!vntBox.isClosed()) {
         final devices = vntBox.peerDeviceList();
         for (var device in devices) {
+          // 跳过已删除的设备
+          if (_deletedDevices.contains(device.virtualIp)) {
+            continue;
+          }
           bool isOnline = _isDeviceOnline(device.status);
           if (isOnline) {
             onlineCount++;
@@ -4424,6 +4546,30 @@ class _DashboardPageState extends State<DashboardPage> {
                                                 ),
                                               ),
                                             ),
+                                            // 删除按钮（仅离线设备）
+                                            if (!isOnline) ...[
+                                              const SizedBox(width: 8),
+                                              InkWell(
+                                                onTap: () {
+                                                  _deleteDeviceFromDashboard(
+                                                    device['name'].isNotEmpty ? device['name'] : '未命名设备',
+                                                    device['ip'],
+                                                  );
+                                                },
+                                                child: Container(
+                                                  padding: EdgeInsets.all(context.spacingXSmall / 2),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.red[400]!.withOpacity(0.1),
+                                                    borderRadius: BorderRadius.circular(4),
+                                                  ),
+                                                  child: Icon(
+                                                    Icons.delete_outline,
+                                                    size: context.iconXSmall,
+                                                    color: Colors.red[400],
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ],
                                         ),
                                         const SizedBox(height: 12),
