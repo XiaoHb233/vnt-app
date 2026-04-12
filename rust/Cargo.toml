@@ -1,0 +1,25 @@
+[package]
+name = "rust_lib_vnt_app"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["staticlib", "cdylib"]
+
+[dependencies]
+
+serde = { version = "1.0", features = ["derive"] }
+flutter_rust_bridge = "=2.1.0"
+vnt = { git = "https://github.com/lmq8267/vnt-Redir.git", branch = "main", features = ["ring-cipher", "wss"] }
+anyhow = "1.0.82"
+tokio = { version = "1.37.0", features = ["full"] }
+
+log = "0.4.17"
+log4rs = "1.2.0"
+
+# 锁定 getrandom 版本，避免使用需要 edition2024 的新版本
+getrandom = "=0.2.15"
+
+[target.'cfg(windows)'.build-dependencies]
+thunk-rs = { version = "0.3.3", features = ["win7"] }
+
