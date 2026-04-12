@@ -308,11 +308,37 @@ class _IntranetAccessPageState extends State<IntranetAccessPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).primaryColor;
 
-    if (_showWebView) {
-      return _buildWebViewPage(isDark, primaryColor);
-    }
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      transitionBuilder: (Widget child, Animation<double> animation) {
+        // WebView 页面从右侧滑入，主页面从左侧滑入
+        final bool isWebView = child is WillPopScope;
+        
+        final offsetAnimation = Tween<Offset>(
+          begin: isWebView ? const Offset(1.0, 0.0) : const Offset(-1.0, 0.0),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeInOutCubic,
+        ));
+        
+        return SlideTransition(
+          position: offsetAnimation,
+          child: FadeTransition(
+            opacity: animation,
+            child: child,
+          ),
+        );
+      },
+      child: _showWebView
+          ? _buildWebViewPage(isDark, primaryColor)
+          : _buildMainPage(isDark, primaryColor),
+    );
+  }
 
+  Widget _buildMainPage(bool isDark, Color primaryColor) {
     return Scaffold(
+      key: const ValueKey('mainPage'),
       backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
       body: SafeArea(
         child: SingleChildScrollView(
@@ -345,6 +371,7 @@ class _IntranetAccessPageState extends State<IntranetAccessPage> {
 
   Widget _buildWebViewPage(bool isDark, Color primaryColor) {
     return WillPopScope(
+      key: const ValueKey('webViewPage'),
       onWillPop: () async {
         // 处理物理返回键：先尝试网页后退
         if (await _webViewController.canGoBack()) {
@@ -565,55 +592,79 @@ class _IntranetAccessPageState extends State<IntranetAccessPage> {
   }
 
   Widget _buildEntryCard(Map<String, dynamic> entry, bool isDark, Color primaryColor) {
-    return InkWell(
-      onTap: () => _openEntry(entry),
-      borderRadius: BorderRadius.circular(context.cardRadius),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 400 + (_entries.indexOf(entry) * 100)),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Transform.translate(
+          offset: Offset(0, (1 - value) * 20),
+          child: Opacity(
+            opacity: value,
+            child: child,
+          ),
+        );
+      },
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _openEntry(entry),
           borderRadius: BorderRadius.circular(context.cardRadius),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.2 : 0.08),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+          splashColor: primaryColor.withOpacity(0.1),
+          highlightColor: primaryColor.withOpacity(0.05),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            decoration: BoxDecoration(
+              color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+              borderRadius: BorderRadius.circular(context.cardRadius),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.08),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: context.iconXLarge,
-              height: context.iconXLarge,
-              decoration: BoxDecoration(
-                color: primaryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(context.cardRadius),
-              ),
-              child: Icon(
-                entry['icon'] as IconData,
-                color: primaryColor,
-                size: context.iconLarge,
-              ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Hero(
+                  tag: 'entry_icon_${entry['id']}',
+                  child: Container(
+                    width: context.iconXLarge,
+                    height: context.iconXLarge,
+                    decoration: BoxDecoration(
+                      color: primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(context.cardRadius),
+                    ),
+                    child: Icon(
+                      entry['icon'] as IconData,
+                      color: primaryColor,
+                      size: context.iconLarge,
+                    ),
+                  ),
+                ),
+                SizedBox(height: context.spacingSmall),
+                Text(
+                  entry['name'] as String,
+                  style: TextStyle(
+                    fontSize: context.fontMedium,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                  ),
+                ),
+                SizedBox(height: context.spacingXSmall / 2),
+                Text(
+                  entry['desc'] as String,
+                  style: TextStyle(
+                    fontSize: context.fontSmall,
+                    color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                  ),
+                ),
+              ],
             ),
-            SizedBox(height: context.spacingSmall),
-            Text(
-              entry['name'] as String,
-              style: TextStyle(
-                fontSize: context.fontMedium,
-                fontWeight: FontWeight.w600,
-                color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-              ),
-            ),
-            SizedBox(height: context.spacingXSmall / 2),
-            Text(
-              entry['desc'] as String,
-              style: TextStyle(
-                fontSize: context.fontSmall,
-                color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
