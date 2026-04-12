@@ -1,8 +1,8 @@
 # Cargokit 配置文件
-# 使用 Rust 1.85 版本（完全支持 edition2024）
+# 使用 Rust 1.88 版本（最新稳定版）
 
 cargo:
   release:
-    toolchain: "1.85.0"
+    toolchain: "1.88.0"
   debug:
-    toolchain: "1.85.0"
+    toolchain: "1.88.0"
