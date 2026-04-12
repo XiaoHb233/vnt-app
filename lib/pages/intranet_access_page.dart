@@ -110,6 +110,15 @@ class _IntranetAccessPageState extends State<IntranetAccessPage> {
     }
   }
 
+  // 处理返回按钮：先尝试网页后退，不能后退时关闭 WebView
+  Future<void> _handleBackButton() async {
+    if (await _webViewController.canGoBack()) {
+      await _webViewController.goBack();
+    } else {
+      _closeWebView();
+    }
+  }
+
   Future<void> _loadServerIp() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -335,60 +344,70 @@ class _IntranetAccessPageState extends State<IntranetAccessPage> {
   }
 
   Widget _buildWebViewPage(bool isDark, Color primaryColor) {
-    return Scaffold(
-      backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
-      appBar: AppBar(
-        backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-          ),
-          onPressed: _closeWebView,
-        ),
-        title: Text(
-          _currentTitle,
-          style: TextStyle(
-            color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-            fontSize: context.fontMedium,
-          ),
-        ),
-        actions: [
-          IconButton(
+    return WillPopScope(
+      onWillPop: () async {
+        // 处理物理返回键：先尝试网页后退
+        if (await _webViewController.canGoBack()) {
+          await _webViewController.goBack();
+          return false; // 不退出页面
+        }
+        return true; // 可以退出页面
+      },
+      child: Scaffold(
+        backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
+        appBar: AppBar(
+          backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+          elevation: 0,
+          leading: IconButton(
             icon: Icon(
-              Icons.refresh,
+              Icons.arrow_back,
               color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
             ),
-            onPressed: _refreshPage,
+            onPressed: _handleBackButton,
           ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          WebViewWidget(controller: _webViewController),
-          if (_isLoading)
-            Container(
-              color: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(
-                      color: primaryColor,
-                    ),
-                    SizedBox(height: context.spacingMedium),
-                    Text(
-                      '正在连接服务器...',
-                      style: TextStyle(
-                        color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+          title: Text(
+            _currentTitle,
+            style: TextStyle(
+              color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+              fontSize: context.fontMedium,
+            ),
+          ),
+          actions: [
+            IconButton(
+              icon: Icon(
+                Icons.refresh,
+                color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+              ),
+              onPressed: _refreshPage,
+            ),
+          ],
+        ),
+        body: Stack(
+          children: [
+            WebViewWidget(controller: _webViewController),
+            if (_isLoading)
+              Container(
+                color: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(
+                        color: primaryColor,
                       ),
-                    ),
-                  ],
+                      SizedBox(height: context.spacingMedium),
+                      Text(
+                        '正在连接服务器...',
+                        style: TextStyle(
+                          color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
