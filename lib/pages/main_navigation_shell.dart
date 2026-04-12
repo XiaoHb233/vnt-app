@@ -277,45 +277,11 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 
   /// iOS VPN连接
   Future<void> _connectViaIOSVPN(NetworkConfig config) async {
-    try {
-      debugPrint('[iOS VPN] Starting VPN connection for: ${config.configName}');
-      
-      // 保存配置到App Group
-      await IOSVPNService.saveConfig(
-        serverAddress: config.serverAddress,
-        token: config.token,
-      );
-      
-      // 启动VPN
-      final success = await IOSVPNService.startVPN(
-        serverAddress: config.serverAddress,
-        token: config.token,
-        deviceName: config.deviceName,
-      );
-      
-      if (success) {
-        // iOS VPN连接成功，更新UI状态
-        setState(() {
-          _selectedConfig = config;
-        });
-        
-        if (mounted) {
-          showTopToast(context, '[${config.configName}] VPN连接成功', isSuccess: true);
-        }
-        
-        debugPrint('[iOS VPN] Connection successful');
-      } else {
-        if (mounted) {
-          showTopToast(context, '[${config.configName}] VPN连接失败，请确认已添加VPN权限', isSuccess: false);
-        }
-        debugPrint('[iOS VPN] Connection failed');
-      }
-    } catch (e) {
-      debugPrint('[iOS VPN] Connection error: $e');
-      if (mounted) {
-        showTopToast(context, '[${config.configName}] VPN连接异常: $e', isSuccess: false);
-      }
+    // iOS VPN 功能暂未实现
+    if (mounted) {
+      showTopToast(context, '[${config.configName}] iOS VPN 功能暂未实现', isSuccess: false);
     }
+    debugPrint('[iOS VPN] iOS VPN 功能暂未实现');
   }
 
   @override
@@ -341,8 +307,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       body: Column(
         children: [
           // 自定义标题栏（桌面平台）
-          if (Platform.isWindows || Platform.isMacOS || Platform.isLinux)
-            const CustomTitleBar(),
+          // if (Platform.isWindows || Platform.isMacOS || Platform.isLinux)
+          //   const CustomTitleBar(),
 
           // 主内容区域
           Expanded(

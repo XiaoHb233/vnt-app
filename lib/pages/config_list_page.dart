@@ -212,7 +212,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
                 ),
               ),
               Text(
-                '${_configs.length} 个配置 ,
+                '${_configs.length} 个配置',
                 style: TextStyle(
                   fontSize: context.fontBody,
                   color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -324,7 +324,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
           ),
           SizedBox(height: context.spacingXSmall),
           Text(
-            '点击上方按钮新建或导入一个组网配置 ,
+            '点击上方按钮新建或导入一个组网配置',
             style: TextStyle(
               fontSize: context.fontBody,
               color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -401,7 +401,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
                       borderRadius: BorderRadius.circular(context.cardRadius),
                     ),
                     child: Text(
-                      '已连接 ,
+                      '已连接',
                       style: TextStyle(
                         fontSize: context.fontSmall,
                         fontWeight: FontWeight.w500,
@@ -434,7 +434,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
               isDark,
               isConnected,
               Icons.dns_outlined,
-              '服务中 ,
+              '服务中',
               config.serverAddress,
             ),
             SizedBox(height: context.spacingMedium),
@@ -524,7 +524,8 @@ class _ConfigListPageState extends State<ConfigListPage> {
         : (isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary);
 
     final valueColor = (isConnected && isDark)
-        ? Colors.white // 暗黑模式已连接：纯白色         : (isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary);
+        ? Colors.white // 暗黑模式已连接：纯白色
+        : (isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary);
 
     return Row(
       children: [
@@ -891,7 +892,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
             ),
           ),
           content: Text(
-            '已经建立了连接 ,
+            '已经建立了连接',
             style: TextStyle(
               color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
             ),
@@ -940,60 +941,39 @@ class _ConfigListPageState extends State<ConfigListPage> {
 
   /// iOS VPN连接
   Future<void> _connectViaIOSVPN(NetworkConfig config) async {
-    try {
-      debugPrint('[iOS VPN] Starting VPN connection for: ${config.configName}');
-      
-      // 保存配置到App Group
-      await IOSVPNService.saveConfig(
-        serverAddress: config.serverAddress,
-        token: config.token,
-      );
-      
-      // 启动VPN
-      final success = await IOSVPNService.startVPN(
-        serverAddress: config.serverAddress,
-        token: config.token,
-        deviceName: config.deviceName,
-      );
-      
-      if (success) {
-        // iOS VPN连接成功
-        if (mounted) {
-          showTopToast(context, '[${config.configName}] VPN连接成功', isSuccess: true);
-          // 调用回调，跳转到房间页面
-          widget.onConfigSelected?.call(config);
-        }
-        
-        debugPrint('[iOS VPN] Connection successful');
-      } else {
-        if (mounted) {
-          showTopToast(context, '[${config.configName}] VPN连接失败，请确认已添加VPN权限', isSuccess: false);
-        }
-        debugPrint('[iOS VPN] Connection failed');
-      }
-    } catch (e) {
-      debugPrint('[iOS VPN] Connection error: $e');
-      if (mounted) {
-        showTopToast(context, '[${config.configName}] VPN连接异常: $e', isSuccess: false);
-      }
+    // iOS VPN 功能暂未实现
+    if (mounted) {
+      showTopToast(context, '[${config.configName}] iOS VPN 功能暂未实现', isSuccess: false);
     }
+    debugPrint('[iOS VPN] iOS VPN 功能暂未实现');
   }
 
   // 导出单个配置
   Future<void> _exportSingleConfig(NetworkConfig config) async {
     try {
+      final fileName = '${config.configName}_${DateTime.now().millisecondsSinceEpoch}.json';
+      final jsonData = {
+        'configName': config.configName,
+        'serverAddress': config.serverAddress,
+        'deviceName': config.deviceName,
+        'token': config.token,
+        'virtualIPv4': config.virtualIPv4,
+        'virtualIPv6': config.virtualIPv6,
+        'stunServers': config.stunServers,
+        'dnsServers': config.dnsServers,
+        'mtu': config.mtu,
+        'password': config.password,
+        'cipherModel': config.cipherModel,
+        'serverPort': config.serverPort,
+        'itemKey': config.itemKey,
+      };
+      final content = jsonEncode(jsonData);
+
       if (Platform.isAndroid) {
         final directory = await getTemporaryDirectory();
-        final fileName = '${config.configName}_${DateTime.now().millisecondsSinceEpoch}.json';
         final filePath = '${directory.path}/$fileName';
-
-        await _dataPersistence.exportSingleConfig(filePath, config);
-
-        // 验证临时文件是否创建成功
-        final tempFile = File(filePath);
-        if (!await tempFile.exists()) {
-          throw Exception('临时文件创建失败');
-        }
+        final file = File(filePath);
+        await file.writeAsString(content);
 
         final success = await FileSaver.copyFile(
           sourceFilePath: filePath,
@@ -1001,9 +981,8 @@ class _ConfigListPageState extends State<ConfigListPage> {
           mimeType: 'application/json',
         );
 
-        // 清理临时文件
-        if (await tempFile.exists()) {
-          await tempFile.delete();
+        if (await file.exists()) {
+          await file.delete();
         }
 
         if (mounted) {
@@ -1014,20 +993,11 @@ class _ConfigListPageState extends State<ConfigListPage> {
           }
         }
       } else if (Platform.isIOS) {
-        // iOS使用Share Sheet分享文件
         final tempDir = await getTemporaryDirectory();
-        final fileName = '${config.configName}_${DateTime.now().millisecondsSinceEpoch}.json';
         final filePath = '${tempDir.path}/$fileName';
+        final file = File(filePath);
+        await file.writeAsString(content);
 
-        await _dataPersistence.exportSingleConfig(filePath, config);
-
-        // 验证临时文件是否创建成功
-        final tempFile = File(filePath);
-        if (!await tempFile.exists()) {
-          throw Exception('临时文件创建失败');
-        }
-
-        // 使用Share Sheet分享文件
         try {
           final box = context.findRenderObject() as RenderBox?;
           final result = await Share.shareXFiles(
@@ -1037,7 +1007,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
           
           if (mounted) {
             if (result.status == ShareResultStatus.success) {
-              showTopToast(context, '配置已导入', isSuccess: true);
+              showTopToast(context, '分享成功', isSuccess: true);
             } else if (result.status == ShareResultStatus.dismissed) {
               showTopToast(context, '操作已取消', isSuccess: false);
             }
@@ -1049,24 +1019,23 @@ class _ConfigListPageState extends State<ConfigListPage> {
           }
         }
 
-        // 延迟清理临时文件
         Future.delayed(const Duration(seconds: 5), () async {
-          if (await tempFile.exists()) {
-            await tempFile.delete();
+          if (await file.exists()) {
+            await file.delete();
           }
         });
       } else {
-        // Windows/macOS/Linux
         String? path = await FilePicker.platform.saveFile(
           dialogTitle: '选择保存位置',
-          fileName: '${config.configName}_${DateTime.now().millisecondsSinceEpoch}.json',
+          fileName: fileName,
           type: FileType.custom,
           allowedExtensions: ['json'],
         );
 
         if (path == null) return;
 
-        await _dataPersistence.exportSingleConfig(path, config);
+        final file = File(path);
+        await file.writeAsString(content);
 
         if (mounted) {
           showTopToast(context, '导出成功: $path', isSuccess: true);
@@ -1100,15 +1069,30 @@ class _ConfigListPageState extends State<ConfigListPage> {
           return;
         }
 
-        await _dataPersistence.importSingleConfig(filePath);
+        // 解析配置
+        final config = NetworkConfig(
+          configName: jsonData['configName'] ?? '',
+          serverAddress: jsonData['serverAddress'] ?? '',
+          deviceName: jsonData['deviceName'] ?? '',
+          token: jsonData['token'] ?? '',
+          virtualIPv4: jsonData['virtualIPv4'] ?? '',
+          virtualIPv6: jsonData['virtualIPv6'] ?? '',
+          stunServers: jsonData['stunServers'] ?? '',
+          dnsServers: jsonData['dnsServers'] ?? '',
+          mtu: jsonData['mtu'] ?? 1400,
+          password: jsonData['password'] ?? '',
+          cipherModel: jsonData['cipherModel'] ?? '',
+          serverPort: jsonData['serverPort'] ?? '',
+          itemKey: DateTime.now().millisecondsSinceEpoch.toString(),
+        );
+
+        _configs.add(config);
+        await _dataPersistence.saveData(_configs);
+
         if (mounted) {
           showTopToast(context, '导入成功', isSuccess: true);
-          // 重新加载配置列表以实时显示导入的配置
           await _loadConfigs();
-          // 同步更新通知栏、磁贴、小组件（导入可能影响默认配置）
           VntAppCall.updateWidgetAndTile(false);
-          // 更新系统托盘（配置列表变化）
-          
         }
       }
     } catch (e) {

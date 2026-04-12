@@ -247,7 +247,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
               Text(
-                '自定义应用设置,
+                '自定义应用设置',
                 style: TextStyle(
                   fontSize: context.fontBody,
                   color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -337,7 +337,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                     Text(
-                      '选择应用的外观主题,
+                      '选择应用的外观主题',
                       style: TextStyle(
                         fontSize: context.fontSmall,
                         color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -609,7 +609,7 @@ class _SettingsPageState extends State<SettingsPage> {
           _buildSettingItem(
             isDark,
             icon: Icons.backup_outlined,
-            title: '备份所有配置 ,
+            title: '备份所有配置',
             subtitle: '将所有配置导出为文件',
             onTap: _exportAllConfigs,
           ),
@@ -618,14 +618,14 @@ class _SettingsPageState extends State<SettingsPage> {
             isDark,
             icon: Icons.restore,
             title: '恢复备份数据',
-            subtitle: '从备份文件恢复配置 ,
+            subtitle: '从备份文件恢复配置',
             onTap: _importAllConfigs,
           ),
           _buildDivider(isDark),
           _buildSettingItem(
             isDark,
             icon: Icons.delete_outline,
-            title: '清除所有数据 ,
+            title: '清除所有数据',
             subtitle: '删除所有配置和缓存',
             iconColor: AppTheme.errorColor,
             onTap: _showClearDataDialog,
@@ -776,7 +776,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                   Text(
-                    '自定义应用主题颜色 ,
+                    '自定义应用主题颜色',
                     style: TextStyle(
                       fontSize: context.fontSmall,
                       color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -837,7 +837,7 @@ class _SettingsPageState extends State<SettingsPage> {
         backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(context.cardRadius)),
         title: Text(
-          '清除所有数据 ,
+          '清除所有数据',
           style: TextStyle(
             color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
           ),
@@ -1269,7 +1269,7 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
 
             // 饱和度滚动条
             _buildSlider(
-              label: '饱和度 ,
+              label: '饱和度',
               value: saturation,
               max: 1,
               displayValue: (saturation * 100).toInt().toString(),
@@ -1290,7 +1290,7 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
 
             // 透明度滚动条
             _buildSlider(
-              label: '透明度 ,
+              label: '透明度',
               value: opacity,
               max: 1,
               displayValue: (opacity * 100).toInt().toString(),

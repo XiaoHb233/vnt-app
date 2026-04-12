@@ -1191,7 +1191,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
         final isLandscape = screenSize.width > screenSize.height;
         final isMobile = screenSize.width < 600;
 
-        // 根据屏幕方向和尺寸计算弹窗尺- 移动端使用更紧凑的高        final dialogMaxWidth = isLandscape ? screenSize.width * 0.6 : screenSize.width * 0.9;
+        // 根据屏幕方向和尺寸计算弹窗尺寸 - 移动端使用更紧凑的高度
+        final dialogMaxWidth = isLandscape ? screenSize.width * 0.6 : screenSize.width * 0.9;
         final dialogMaxHeight = isMobile
             ? (isLandscape ? screenSize.height * 0.85 : screenSize.height * 0.7)
             : (isLandscape ? screenSize.height * 0.9 : screenSize.height * 0.8);
