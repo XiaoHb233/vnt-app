@@ -17,8 +17,9 @@ tokio = { version = "1.37.0", features = ["full"] }
 log = "0.4.17"
 log4rs = "1.2.0"
 
-# 锁定 getrandom 版本，避免使用需要 edition2024 的新版本
+# 锁定版本，避免使用需要 edition2024 或 Rust 1.88+ 的新版本
 getrandom = "=0.2.15"
+home = "=0.5.9"
 
 [target.'cfg(windows)'.build-dependencies]
 thunk-rs = { version = "0.3.3", features = ["win7"] }
