@@ -134,7 +134,7 @@ class NetworkConfig {
 
   factory NetworkConfig.fromJson(Map<String, dynamic> json) {
     return NetworkConfig(
-      itemKey: json['itemKey'],
+      itemKey: json['itemKey'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
       configName: json['config_name'],
       token: json['token'],
       deviceName: json['name'],

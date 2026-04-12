@@ -952,21 +952,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
   Future<void> _exportSingleConfig(NetworkConfig config) async {
     try {
       final fileName = '${config.configName}_${DateTime.now().millisecondsSinceEpoch}.json';
-      final jsonData = {
-        'configName': config.configName,
-        'serverAddress': config.serverAddress,
-        'deviceName': config.deviceName,
-        'token': config.token,
-        'virtualIPv4': config.virtualIPv4,
-        'virtualIPv6': config.virtualIPv6,
-        'stunServers': config.stunServers,
-        'dnsServers': config.dnsServers,
-        'mtu': config.mtu,
-        'password': config.password,
-        'cipherModel': config.cipherModel,
-        'serverPort': config.serverPort,
-        'itemKey': config.itemKey,
-      };
+      final jsonData = config.toJson();
       final content = jsonEncode(jsonData);
 
       if (Platform.isAndroid) {
@@ -1070,21 +1056,8 @@ class _ConfigListPageState extends State<ConfigListPage> {
         }
 
         // 解析配置
-        final config = NetworkConfig(
-          configName: jsonData['configName'] ?? '',
-          serverAddress: jsonData['serverAddress'] ?? '',
-          deviceName: jsonData['deviceName'] ?? '',
-          token: jsonData['token'] ?? '',
-          virtualIPv4: jsonData['virtualIPv4'] ?? '',
-          virtualIPv6: jsonData['virtualIPv6'] ?? '',
-          stunServers: jsonData['stunServers'] ?? '',
-          dnsServers: jsonData['dnsServers'] ?? '',
-          mtu: jsonData['mtu'] ?? 1400,
-          password: jsonData['password'] ?? '',
-          cipherModel: jsonData['cipherModel'] ?? '',
-          serverPort: jsonData['serverPort'] ?? '',
-          itemKey: DateTime.now().millisecondsSinceEpoch.toString(),
-        );
+        final config = NetworkConfig.fromJson(jsonData);
+        config.itemKey = DateTime.now().millisecondsSinceEpoch.toString();
 
         _configs.add(config);
         await _dataPersistence.saveData(_configs);
