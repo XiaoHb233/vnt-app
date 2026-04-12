@@ -7,6 +7,9 @@ import 'package:webview_flutter/webview_flutter.dart';
 // 导入平台特定的 WebView 设置
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
+// 文件选择器
+import 'package:file_picker/file_picker.dart';
+import 'package:cross_file/cross_file.dart';
 
 /// 内网访问页面 - 整合美团查询系统
 class IntranetAccessPage extends StatefulWidget {
@@ -107,6 +110,59 @@ class _IntranetAccessPageState extends State<IntranetAccessPage> {
       AndroidWebViewController.enableDebugging(true);
       (_webViewController.platform as AndroidWebViewController)
           .setMediaPlaybackRequiresUserGesture(false);
+      
+      // 配置文件上传支持
+      (_webViewController.platform as AndroidWebViewController)
+          .setOnShowFileSelector((FileSelectorParams params) async {
+        try {
+          // 根据 acceptTypes 决定文件类型
+          FileType fileType = FileType.any;
+          final acceptTypes = params.acceptTypes;
+          
+          if (acceptTypes.isNotEmpty) {
+            // 检查是否是图片
+            if (acceptTypes.any((type) => 
+                type.contains('image') || type.contains('jpg') || type.contains('png'))) {
+              fileType = FileType.image;
+            } 
+            // 检查是否是 Python 文件
+            else if (acceptTypes.any((type) => 
+                type.contains('python') || type.contains('.py'))) {
+              fileType = FileType.custom;
+              // 使用 FilePicker 选择 .py 文件
+              final result = await FilePicker.platform.pickFiles(
+                type: FileType.custom,
+                allowedExtensions: ['py'],
+                allowMultiple: params.mode == FileSelectorMode.openMultiple,
+              );
+              if (result != null && result.files.isNotEmpty) {
+                return result.files
+                    .where((file) => file.path != null)
+                    .map((file) => XFile(file.path!))
+                    .toList();
+              }
+              return [];
+            }
+          }
+          
+          // 默认文件选择
+          final result = await FilePicker.platform.pickFiles(
+            type: fileType,
+            allowMultiple: params.mode == FileSelectorMode.openMultiple,
+          );
+          
+          if (result != null && result.files.isNotEmpty) {
+            return result.files
+                .where((file) => file.path != null)
+                .map((file) => XFile(file.path!))
+                .toList();
+          }
+          return [];
+        } catch (e) {
+          debugPrint('文件选择错误: $e');
+          return [];
+        }
+      });
     }
   }
 
