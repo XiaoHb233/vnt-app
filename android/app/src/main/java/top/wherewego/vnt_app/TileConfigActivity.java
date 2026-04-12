@@ -144,7 +144,7 @@ public class TileConfigActivity extends Activity {
         String defaultKey = prefs.getString(DEFAULT_KEY, "");
         Log.d(TAG, "读取默认配置 key (DEFAULT_KEY=" + DEFAULT_KEY + "): " + defaultKey);
 
-        // 如果没有读��到，尝试不带前缀的键名
+        // 如果没有读取到，尝试不带前缀的键名
         if (defaultKey.isEmpty()) {
             defaultKey = prefs.getString("default-key", "");
             Log.d(TAG, "尝试读取 default-key: " + defaultKey);

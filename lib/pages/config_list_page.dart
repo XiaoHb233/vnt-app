@@ -776,7 +776,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
             Navigator.of(context).popUntil((route) => route.isFirst);
           }
           // 统一显示"服务已停止"提示
-          showTopToast(context, '[$configName] 服务已停止, isSuccess: false);
+          showTopToast(context, '[$configName] 服务已停止', isSuccess: false);
           setState(() {});
           // 更新 Android 磁贴和小组件
           if (Platform.isAndroid) {
@@ -1010,7 +1010,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
           if (success) {
             showTopToast(context, '导出成功: $fileName', isSuccess: true);
           } else {
-            showTopToast(context, '导出已取消 , isSuccess: false);
+            showTopToast(context, '导出已取消', isSuccess: false);
           }
         }
       } else if (Platform.isIOS) {
@@ -1037,9 +1037,9 @@ class _ConfigListPageState extends State<ConfigListPage> {
           
           if (mounted) {
             if (result.status == ShareResultStatus.success) {
-              showTopToast(context, '配置已导入 , isSuccess: true);
+              showTopToast(context, '配置已导入', isSuccess: true);
             } else if (result.status == ShareResultStatus.dismissed) {
-              showTopToast(context, '操作已取消 , isSuccess: false);
+              showTopToast(context, '操作已取消', isSuccess: false);
             }
           }
         } catch (e) {
@@ -1095,7 +1095,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
         // 检查是否是全局备份文件
         if (jsonData.containsKey('configs')) {
           if (mounted) {
-            showTopToast(context, '这是全局备份文件，请在设置页面的"恢复备份数据"中导入 , isSuccess: false);
+            showTopToast(context, '这是全局备份文件，请在设置页面的"恢复备份数据"中导入', isSuccess: false);
           }
           return;
         }

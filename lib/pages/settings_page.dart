@@ -140,7 +140,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
       if (jsonData.containsKey('config') && !jsonData.containsKey('configs')) {
         if (mounted) {
-          showTopToast(context, '这是单个组网配置文件，请在配置页面的导入按钮中导入, isSuccess: false);
+          showTopToast(context, '这是单个组网配置文件，请在配置页面的导入按钮中导入', isSuccess: false);
         }
         return;
       }
@@ -822,7 +822,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (result != null) {
       themeProvider.setCustomThemeColor(result);
       if (mounted) {
-        showTopToast(context, '主题颜色已更改 , isSuccess: true);
+        showTopToast(context, '主题颜色已更改', isSuccess: true);
       }
     }
   }

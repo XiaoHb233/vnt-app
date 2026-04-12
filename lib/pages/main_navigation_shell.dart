@@ -188,7 +188,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             Navigator.of(context).pop(); // 关闭连接中对话框
           }
           // 统一显示"服务已停止"提示
-          showTopToast(context, '[${config.configName}] 服务已停止, isSuccess: false);
+          showTopToast(context, '[${config.configName}] 服务已停止', isSuccess: false);
           // 服务停止，更新磁贴和小组件状态
           if (Platform.isAndroid) {
             VntAppCall.updateWidgetAndTile(vntManager.hasConnection());
@@ -251,16 +251,16 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         errorMessage = '[$configName] 连接断开';
         break;
       case RustErrorType.addressExhausted:
-        errorMessage = '[$configName] 地址已用完;
+        errorMessage = '[$configName] 地址已用完';
         break;
       case RustErrorType.ipAlreadyExists:
-        errorMessage = '[$configName] IP已存在;
+        errorMessage = '[$configName] IP已存在';
         break;
       case RustErrorType.invalidIp:
         errorMessage = '[$configName] 无效的IP';
         break;
       case RustErrorType.localIpExists:
-        errorMessage = '[$configName] 本地IP已存在;
+        errorMessage = '[$configName] 本地IP已存在';
         break;
       default:
         errorMessage = '[$configName] 未知错误';
