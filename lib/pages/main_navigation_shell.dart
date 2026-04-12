@@ -92,7 +92,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     if (targetKey == null || targetKey.isEmpty) {
       // 如果是从磁贴启动但没有配置，提示用户
       if (isTileStart && mounted) {
-        showTopToast(context, '请先在配置页面设置默认配�?, isSuccess: false);
+        showTopToast(context, '请先在配置页面设置默认配置', isSuccess: false);
       }
       return;
     }
@@ -101,12 +101,13 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     final config = configs.where((c) => c.itemKey == targetKey).firstOrNull;
     if (config == null) {
       if (isTileStart && mounted) {
-        showTopToast(context, '配置不存在，请重新设�?, isSuccess: false);
+        showTopToast(context, '配置不存在，请重新设置', isSuccess: false);
       }
       return;
     }
 
-    // 直接连接选中的配�?    if (mounted) {
+    // 直接连接选中的配置
+    if (mounted) {
       _connectToConfigDirectly(config);
     }
   }
@@ -115,14 +116,14 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   Future<void> _connectToConfigDirectly(NetworkConfig config) async {
     if (vntManager.hasConnectionItem(config.itemKey)) {
       if (mounted) {
-        showTopToast(context, '[${config.configName}] 已连�?, isSuccess: true);
+        showTopToast(context, '[${config.configName}] 已连接', isSuccess: true);
       }
       return;
     }
 
     if (vntManager.isConnecting()) {
       if (mounted) {
-        showTopToast(context, '正在连接中，请稍后再�?, isSuccess: false);
+        showTopToast(context, '正在连接中，请稍后再试', isSuccess: false);
       }
       return;
     }
