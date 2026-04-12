@@ -9,7 +9,6 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 // 文件选择器
 import 'package:file_picker/file_picker.dart';
-import 'package:cross_file/cross_file.dart';
 
 /// 内网访问页面 - 整合美团查询系统
 class IntranetAccessPage extends StatefulWidget {
@@ -117,6 +116,7 @@ class _IntranetAccessPageState extends State<IntranetAccessPage> {
         try {
           // 根据 acceptTypes 决定文件类型
           FileType fileType = FileType.any;
+          List<String>? allowedExtensions;
           final acceptTypes = params.acceptTypes;
           
           if (acceptTypes.isNotEmpty) {
@@ -129,32 +129,22 @@ class _IntranetAccessPageState extends State<IntranetAccessPage> {
             else if (acceptTypes.any((type) => 
                 type.contains('python') || type.contains('.py'))) {
               fileType = FileType.custom;
-              // 使用 FilePicker 选择 .py 文件
-              final result = await FilePicker.platform.pickFiles(
-                type: FileType.custom,
-                allowedExtensions: ['py'],
-                allowMultiple: params.mode == FileSelectorMode.openMultiple,
-              );
-              if (result != null && result.files.isNotEmpty) {
-                return result.files
-                    .where((file) => file.path != null)
-                    .map((file) => XFile(file.path!))
-                    .toList();
-              }
-              return [];
+              allowedExtensions = ['py'];
             }
           }
           
-          // 默认文件选择
+          // 使用 FilePicker 选择文件
           final result = await FilePicker.platform.pickFiles(
             type: fileType,
+            allowedExtensions: allowedExtensions,
             allowMultiple: params.mode == FileSelectorMode.openMultiple,
           );
           
+          // 返回文件路径列表（String 类型）
           if (result != null && result.files.isNotEmpty) {
             return result.files
                 .where((file) => file.path != null)
-                .map((file) => XFile(file.path!))
+                .map((file) => file.path!)
                 .toList();
           }
           return [];
