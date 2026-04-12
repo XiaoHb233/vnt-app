@@ -77,19 +77,19 @@ jobs:
             ~/.rustup/toolchains
             ~/.rustup/update-hashes
             ~/.cargo/bin
-          key: ${{ runner.os }}-rust-toolchain-1.88.0
+          key: ${{ runner.os }}-rust-toolchain-1.75.0
 
-      - name: 固定 Rust 版本 1.88
+      - name: 固定 Rust 版本 1.75
         shell: bash
         run: |
-          if ! command -v rustc &> /dev/null || [ "$(rustc --version | cut -d' ' -f2)" != "1.88.0" ]; then
-            echo "🔧 安装 Rust 1.88.0..."
+          if ! command -v rustc &> /dev/null || [ "$(rustc --version | cut -d' ' -f2)" != "1.75.0" ]; then
+            echo "🔧 安装 Rust 1.75.0..."
             rustup set auto-self-update disable
-            rustup toolchain install 1.88.0 --profile minimal
-            rustup default 1.88.0
-            rustup component add rust-src --toolchain 1.88.0
+            rustup toolchain install 1.75.0 --profile minimal
+            rustup default 1.75.0
+            rustup component add rust-src --toolchain 1.75.0
           else
-            echo "✅ Rust 1.88.0 已安装"
+            echo "✅ Rust 1.75.0 已安装"
           fi
           rustc -V
           cargo -V
