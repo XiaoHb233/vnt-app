@@ -85,9 +85,7 @@ class _IntranetAccessPageState extends State<IntranetAccessPage> {
           },
         ),
       )
-      ..setUserAgent('Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36')
-      ..setAllowFileAccess(true)
-      ..setAllowContentAccess(true);
+      ..setUserAgent('Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36');
   }
 
   Future<void> _loadServerIp() async {
