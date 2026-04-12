@@ -98,8 +98,6 @@ public class MyVpnService extends VpnService {
                 .setBlocking(false)
                 .setMtu(config.mtu)
                 .addAddress(ip, prefixLength)
-                // 自己的流量不走网卡
-                .addDisallowedApplication("top.wherewego.vnt_app")
                 .addRoute(ipRoute, prefixLength);
         if (config.externalRoute != null) {
             for (DeviceConfig.Route routeItem : config.externalRoute) {

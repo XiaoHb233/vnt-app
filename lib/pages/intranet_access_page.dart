@@ -4,6 +4,9 @@ import 'package:vnt_app/theme/app_theme.dart';
 import 'package:vnt_app/utils/responsive_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+// 导入平台特定的 WebView 设置
+import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 /// 内网访问页面 - 整合美团查询系统
 class IntranetAccessPage extends StatefulWidget {
@@ -64,7 +67,18 @@ class _IntranetAccessPageState extends State<IntranetAccessPage> {
   }
 
   void _initWebView() {
-    _webViewController = WebViewController()
+    // 创建平台特定的参数
+    late final PlatformWebViewControllerCreationParams params;
+    if (WebViewPlatform.instance is WebKitWebViewPlatform) {
+      params = WebKitWebViewControllerCreationParams(
+        allowsInlineMediaPlayback: true,
+        mediaTypesRequiringUserAction: const <PlaybackMediaTypes>{},
+      );
+    } else {
+      params = const PlatformWebViewControllerCreationParams();
+    }
+
+    _webViewController = WebViewController.fromPlatformCreationParams(params)
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
         NavigationDelegate(
@@ -79,6 +93,7 @@ class _IntranetAccessPageState extends State<IntranetAccessPage> {
             });
           },
           onWebResourceError: (WebResourceError error) {
+            debugPrint('WebView 错误: ${error.errorCode} - ${error.description}');
             setState(() {
               _isLoading = false;
             });
@@ -86,6 +101,13 @@ class _IntranetAccessPageState extends State<IntranetAccessPage> {
         ),
       )
       ..setUserAgent('Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36');
+
+    // Android 特定设置：确保使用应用的网络栈（包括 VPN）
+    if (_webViewController.platform is AndroidWebViewController) {
+      AndroidWebViewController.enableDebugging(true);
+      (_webViewController.platform as AndroidWebViewController)
+          .setMediaPlaybackRequiresUserGesture(false);
+    }
   }
 
   Future<void> _loadServerIp() async {
