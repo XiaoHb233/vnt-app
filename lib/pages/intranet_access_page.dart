@@ -191,9 +191,9 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
             await _webViewController.goBack();
             _showToast('再按一次返回首页');
           } else {
-            // 没有历史记录，直接关闭
+            // 没有历史记录，关闭 WebView 回到入口页面
             _closeWebView();
-            return true;
+            return false; // 返回 false 阻止页面退出，只是切换显示状态
           }
         }
       } catch (e) {
@@ -204,10 +204,10 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
 
       return false; // 不退出页面
     } else {
-      // 第二次按返回键（1.5秒内）：直接返回首页
+      // 第二次按返回键（1.5秒内）：关闭 WebView 回到入口页面
       _lastBackTime = null;
       _closeWebView();
-      return true; // 可以退出页面
+      return false; // 返回 false 阻止页面退出，只是切换显示状态
     }
   }
 
