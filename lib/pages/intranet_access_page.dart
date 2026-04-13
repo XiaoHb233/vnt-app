@@ -157,13 +157,70 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     }
   }
 
-  // 处理返回按钮：先尝试网页后退，不能后退时关闭 WebView
-  Future<void> _handleBackButton() async {
-    if (await _webViewController.canGoBack()) {
-      await _webViewController.goBack();
+  // 上次返回时间（用于双重返回逻辑）
+  int? _lastBackTime;
+  static const int _backInterval = 1500; // 1.5秒内双击返回
+
+  // 处理返回按钮点击 - 与 HBuilder_app 一致：直接返回入口页面
+  void _handleBackButton() {
+    _closeWebView();
+  }
+
+  // 处理物理返回键 - 与 HBuilder_app 一致：双重返回逻辑
+  Future<bool> _handlePhysicalBackButton() async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final adminUrl = 'http://$_serverIp/admin/dashboard.html';
+
+    // 第一次按返回键（1.5秒内）
+    if (_lastBackTime == null || now - _lastBackTime! > _backInterval) {
+      _lastBackTime = now;
+
+      try {
+        // 获取当前 URL
+        final currentUrl = await _webViewController.currentUrl() ?? '';
+
+        // 检查当前是否在 AsynPost 或 QL 页面
+        if (currentUrl.contains('/asyn_post.html') ||
+            currentUrl.contains('/ql_scheduler.html')) {
+          // 直接跳转到后台首页
+          await _webViewController.loadRequest(Uri.parse(adminUrl));
+          _showToast('已返回后台');
+        } else {
+          // 尝试历史记录返回
+          if (await _webViewController.canGoBack()) {
+            await _webViewController.goBack();
+            _showToast('再按一次返回首页');
+          } else {
+            // 没有历史记录，直接关闭
+            _closeWebView();
+            return true;
+          }
+        }
+      } catch (e) {
+        // 出错时直接跳转到后台首页
+        await _webViewController.loadRequest(Uri.parse(adminUrl));
+        _showToast('已返回后台');
+      }
+
+      return false; // 不退出页面
     } else {
+      // 第二次按返回键（1.5秒内）：直接返回首页
+      _lastBackTime = null;
       _closeWebView();
+      return true; // 可以退出页面
     }
+  }
+
+  // 显示提示（类似 HBuilder_app 的 showGestureHint）
+  void _showToast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(milliseconds: 1500),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.black87,
+      ),
+    );
   }
 
   Future<void> _loadServerIp() async {
@@ -426,14 +483,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
   Widget _buildWebViewPage(bool isDark, Color primaryColor) {
     return WillPopScope(
       key: const ValueKey('webViewPage'),
-      onWillPop: () async {
-        // 处理物理返回键：先尝试网页后退
-        if (await _webViewController.canGoBack()) {
-          await _webViewController.goBack();
-          return false; // 不退出页面
-        }
-        return true; // 可以退出页面
-      },
+      onWillPop: _handlePhysicalBackButton, // 使用与 HBuilder_app 一致的双重返回逻辑
       child: Scaffold(
         backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
         appBar: AppBar(
