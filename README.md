@@ -1,6 +1,6 @@
 # VNT GUI
 
-VNT GUI
+VNT-APP 目前只支持Android 个人使用加入内网导航栏 
 
 <img width="937" height="1010" alt="image" src="https://github.com/user-attachments/assets/6778be17-a4ab-4b63-b2ad-037d6223dc05" />
 
