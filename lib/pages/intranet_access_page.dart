@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:vnt_app/theme/app_theme.dart';
 import 'package:vnt_app/utils/responsive_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,6 +10,8 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 // 文件选择器
 import 'package:file_picker/file_picker.dart';
+// 用于获取 Content URI
+import 'package:path_provider/path_provider.dart';
 
 /// 内网访问页面 - 整合美团查询系统
 class IntranetAccessPage extends StatefulWidget {
@@ -139,14 +142,24 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
             type: fileType,
             allowedExtensions: allowedExtensions,
             allowMultiple: params.mode == FileSelectorMode.openMultiple,
+            // 关键：使用 withData: true 获取文件内容
+            withData: false,
+            withReadStream: false,
           );
           
-          // 返回文件路径列表（String 类型）
+          // 返回 Content URI 列表
           if (result != null && result.files.isNotEmpty) {
-            return result.files
-                .where((file) => file.path != null)
-                .map((file) => file.path!)
-                .toList();
+            final List<String> uris = [];
+            for (final file in result.files) {
+              if (file.path != null) {
+                // 将本地路径转换为 Content URI
+                final contentUri = await _getContentUri(file.path!, file.name);
+                if (contentUri != null) {
+                  uris.add(contentUri);
+                }
+              }
+            }
+            return uris;
           }
           return [];
         } catch (e) {
@@ -154,6 +167,25 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
           return [];
         }
       });
+    }
+  }
+
+  /// 将本地文件路径转换为 Content URI
+  /// 这是 Android WebView 文件上传必需的格式
+  Future<String?> _getContentUri(String filePath, String fileName) async {
+    try {
+      // 使用 MethodChannel 调用原生代码获取 Content URI
+      const platform = MethodChannel('top.wherewego.vnt/filepicker');
+      final String? contentUri = await platform.invokeMethod('getContentUri', {
+        'filePath': filePath,
+        'fileName': fileName,
+      });
+      return contentUri;
+    } catch (e) {
+      debugPrint('获取 Content URI 失败: $e');
+      // 如果原生方法失败，尝试使用 file:// 协议作为后备
+      // 注意：这可能不适用于所有 Android 版本
+      return 'file://$filePath';
     }
   }
 

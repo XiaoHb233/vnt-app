@@ -12,6 +12,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -30,7 +31,9 @@ public class MainActivity extends FlutterActivity {
     private static final int NOTIFICATION_PERMISSION_REQUEST_CODE = 3;
 
     private static final String FILE_CHANNEL = "top.wherewego.vnt/file";
+    private static final String FILE_PICKER_CHANNEL = "top.wherewego.vnt/filepicker";
     private MethodChannel fileChannel;
+    private MethodChannel filePickerChannel;
     private String pendingFilePath;
     private MethodChannel.Result pendingFileResult;
 
@@ -156,6 +159,51 @@ public class MainActivity extends FlutterActivity {
 
                 // 使用 SAF 创建文件
                 createFile(fileName, mimeType != null ? mimeType : "*/*");
+            } else {
+                result.notImplemented();
+            }
+        });
+
+        // File Picker Channel - 用于 WebView 文件上传，将本地路径转换为 Content URI
+        filePickerChannel = new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), FILE_PICKER_CHANNEL);
+        filePickerChannel.setMethodCallHandler((call, result) -> {
+            if (call.method.equals("getContentUri")) {
+                String filePath = call.argument("filePath");
+                String fileName = call.argument("fileName");
+
+                if (filePath == null) {
+                    result.error("INVALID_ARGUMENT", "filePath is required", null);
+                    return;
+                }
+
+                try {
+                    File file = new File(filePath);
+                    if (!file.exists()) {
+                        result.error("FILE_NOT_FOUND", "File does not exist: " + filePath, null);
+                        return;
+                    }
+
+                    // 使用 FileProvider 获取 Content URI
+                    // 格式：content://{applicationId}.fileprovider/{file_paths.xml中定义的路径}/{文件名}
+                    Uri contentUri = FileProvider.getUriForFile(
+                            this,
+                            getPackageName() + ".fileprovider",
+                            file
+                    );
+
+                    // 授予临时读取权限
+                    grantUriPermission(
+                            getPackageName(),
+                            contentUri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    );
+
+                    Log.d(TAG, "Generated Content URI: " + contentUri.toString());
+                    result.success(contentUri.toString());
+                } catch (Exception e) {
+                    Log.e(TAG, "Error generating Content URI", e);
+                    result.error("URI_GENERATION_FAILED", e.getMessage(), null);
+                }
             } else {
                 result.notImplemented();
             }

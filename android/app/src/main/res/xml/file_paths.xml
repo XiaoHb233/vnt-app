@@ -1,9 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 外部存储根目录 -->
     <external-path name="external_files" path="." />
-    <external-files-path name="external_files" path="." />
+    <!-- 应用外部文件目录 -->
+    <external-files-path name="external_app_files" path="." />
+    <!-- 缓存目录 -->
     <cache-path name="cache" path="." />
+    <!-- 外部缓存目录 -->
     <external-cache-path name="external_cache" path="." />
+    <!-- 应用内部文件目录 -->
     <files-path name="files" path="." />
+    <!-- 根目录（用于访问所有文件） -->
     <root-path name="root" path="." />
+    <!-- 下载目录 -->
+    <external-path name="downloads" path="Download/" />
+    <external-path name="documents" path="Documents/" />
+    <!-- DCIM 图片目录 -->
+    <external-path name="dcim" path="DCIM/" />
+    <!-- 图片目录 -->
+    <external-path name="pictures" path="Pictures/" />
 </paths>
