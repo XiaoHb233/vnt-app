@@ -35,6 +35,20 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   NetworkConfig? _selectedConfig;
   VoidCallback? _refreshConfigList;
   VoidCallback? _refreshSettings;
+  
+  // 内网访问页面的 GlobalKey，用于控制页面状态
+  final GlobalKey<IntranetAccessPageState> _intranetPageKey = GlobalKey<IntranetAccessPageState>();
+
+  /// 处理导航项点击
+  void _onNavItemTapped(int index) {
+    // 如果点击的是内网访问（索引3），且当前已经在内网访问页面，则重置页面状态
+    if (index == 3 && _selectedIndex == 3) {
+      _intranetPageKey.currentState?.resetToEntryPage();
+    }
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
 
   // 导航项配置
   static const List<_NavItem> _navItems = [
@@ -451,7 +465,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
-                        onTap: () => setState(() => _selectedIndex = index),
+                        onTap: () => _onNavItemTapped(index),
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
                           padding: EdgeInsets.symmetric(
@@ -578,7 +592,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 
               return Expanded(
                 child: InkWell(
-                  onTap: () => setState(() => _selectedIndex = index),
+                  onTap: () => _onNavItemTapped(index),
                   borderRadius: BorderRadius.circular(12),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
@@ -703,7 +717,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           },
         ),
         // 3: 内网访问
-        const IntranetAccessPage(),
+        IntranetAccessPage(key: _intranetPageKey),
         // 4: 设置
         SettingsPage(
           themeMode: themeProvider?.themeMode ?? ThemeMode.system,

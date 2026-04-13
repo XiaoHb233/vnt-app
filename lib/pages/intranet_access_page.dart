@@ -15,10 +15,11 @@ class IntranetAccessPage extends StatefulWidget {
   const IntranetAccessPage({super.key});
 
   @override
-  State<IntranetAccessPage> createState() => _IntranetAccessPageState();
+  State<IntranetAccessPage> createState() => IntranetAccessPageState();
 }
 
-class _IntranetAccessPageState extends State<IntranetAccessPage> {
+// 暴露 State 类以便外部访问
+class IntranetAccessPageState extends State<IntranetAccessPage> {
   static const String _serverIpKey = 'intranet_server_ip';
   String _serverIp = '127.0.0.1';
   bool _isLoading = true;
@@ -200,6 +201,13 @@ class _IntranetAccessPageState extends State<IntranetAccessPage> {
       _showWebView = false;
       _currentUrl = '';
     });
+  }
+
+  /// 重置页面状态 - 当点击底部导航栏内网按钮时调用
+  void resetToEntryPage() {
+    if (_showWebView) {
+      _closeWebView();
+    }
   }
 
   void _refreshPage() {
