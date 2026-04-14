@@ -278,18 +278,8 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
                   userAgent: 'Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
                 ),
                 android: AndroidInAppWebViewOptions(
-                  // 允许混合内容（HTTP/HTTPS）
-                  mixedContentMode: AndroidMixedContentMode.MIXED_CONTENT_COMPATIBILITY_MODE,
-                  // 数据库支持
-                  databaseEnabled: true,
-                  // DOM 存储支持
-                  domStorageEnabled: true,
-                  // 支持缩放
-                  supportZoom: true,
-                  // 显示缩放控件
-                  builtInZoomControls: true,
-                  // 硬件加速
-                  hardwareAcceleration: true,
+                  // 使用 Hybrid Composition 提升性能
+                  useHybridComposition: true,
                 ),
               ),
               onWebViewCreated: (controller) {
