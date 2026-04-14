@@ -280,8 +280,6 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
                 android: AndroidInAppWebViewOptions(
                   // 允许混合内容（HTTP/HTTPS）
                   mixedContentMode: AndroidMixedContentMode.MIXED_CONTENT_COMPATIBILITY_MODE,
-                  // 媒体播放不需要用户手势
-                  mediaPlaybackRequiresUserGesture: false,
                   // 数据库支持
                   databaseEnabled: true,
                   // DOM 存储支持
