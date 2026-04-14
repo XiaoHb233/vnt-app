@@ -455,9 +455,9 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
       transitionBuilder: (Widget child, Animation<double> animation) {
-        final bool isWebView = child.key == const ValueKey('webViewPage');
+        // 根据 _showWebView 状态判断动画方向，而不是依赖 child.key
         final offsetAnimation = Tween<Offset>(
-          begin: isWebView ? const Offset(1.0, 0.0) : const Offset(-1.0, 0.0),
+          begin: _showWebView ? const Offset(1.0, 0.0) : const Offset(-1.0, 0.0),
           end: Offset.zero,
         ).animate(CurvedAnimation(
           parent: animation,
@@ -528,7 +528,6 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
 
   Widget _buildWebViewPage(bool isDark, Color primaryColor) {
     return WillPopScope(
-      key: const ValueKey('webViewPage'),
       onWillPop: _handlePhysicalBackButton,
       child: Scaffold(
         backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
