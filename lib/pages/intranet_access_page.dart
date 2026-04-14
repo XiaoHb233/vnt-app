@@ -111,14 +111,8 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     // Android 特定设置：确保使用应用的网络栈（包括 VPN）
     if (_webViewController.platform is AndroidWebViewController) {
       AndroidWebViewController.enableDebugging(true);
-      
-      // 优化 WebView 性能：禁用媒体播放需要用户手势，减少资源占用
       (_webViewController.platform as AndroidWebViewController)
           .setMediaPlaybackRequiresUserGesture(false);
-      
-      // 优化 WebView 性能：设置透明背景，减少键盘弹出时的重绘
-      (_webViewController.platform as AndroidWebViewController)
-          .setBackgroundColor(Colors.transparent);
       
       // 配置文件上传支持
       (_webViewController.platform as AndroidWebViewController)
