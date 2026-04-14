@@ -60,10 +60,49 @@ public class IntranetWebActivity extends Activity {
         // 初始化标题栏
         initTitleBar(title);
 
+        // 初始化底部导航栏
+        initBottomNav();
+
         webView = findViewById(R.id.webView);
         progressBar = findViewById(R.id.progressBar);
 
         initWebView(url);
+    }
+
+    private void initBottomNav() {
+        // 仪表盘 - 返回 Flutter 主页面
+        findViewById(R.id.navDashboard).setOnClickListener(v -> {
+            finish();
+        });
+
+        // 房间 - 返回 Flutter 主页面
+        findViewById(R.id.navRoom).setOnClickListener(v -> {
+            finish();
+        });
+
+        // 配置 - 返回 Flutter 主页面
+        findViewById(R.id.navConfig).setOnClickListener(v -> {
+            finish();
+        });
+
+        // 内网 - 刷新当前页面或返回入口
+        findViewById(R.id.navIntranet).setOnClickListener(v -> {
+            // 如果当前不在入口页，加载入口页
+            String entryUrl = "http://" + serverIp + "/index.html";
+            if (currentUrl != null && !currentUrl.equals(entryUrl)) {
+                webView.loadUrl(entryUrl);
+            }
+        });
+
+        // 设置 - 返回 Flutter 主页面
+        findViewById(R.id.navSettings).setOnClickListener(v -> {
+            finish();
+        });
+
+        // 关于 - 返回 Flutter 主页面
+        findViewById(R.id.navAbout).setOnClickListener(v -> {
+            finish();
+        });
     }
 
     private void initTitleBar(String title) {
