@@ -116,9 +116,6 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
       // 禁用媒体播放需要用户手势
       androidController.setMediaPlaybackRequiresUserGesture(false);
 
-      // 设置硬件加速渲染模式，优化软键盘弹出时的性能
-      androidController.setLayerType(AndroidWebViewLayerType.hardware);
-
       // 配置文件上传支持
       androidController.setOnShowFileSelector((FileSelectorParams params) async {
         try {
@@ -460,7 +457,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
       transitionBuilder: (Widget child, Animation<double> animation) {
         // WebView 页面从右侧滑入，主页面从左侧滑入
         final bool isWebView = child is WillPopScope;
-        
+
         final offsetAnimation = Tween<Offset>(
           begin: isWebView ? const Offset(1.0, 0.0) : const Offset(-1.0, 0.0),
           end: Offset.zero,
@@ -468,7 +465,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
           parent: animation,
           curve: Curves.easeInOutCubic,
         ));
-        
+
         return SlideTransition(
           position: offsetAnimation,
           child: FadeTransition(
@@ -481,6 +478,22 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
           ? _buildWebViewPage(isDark, primaryColor)
           : _buildMainPage(isDark, primaryColor),
     );
+  }
+
+  /// 构建 WebViewWidget，Android 平台使用 Hybrid Composition 模式优化键盘体验
+  Widget _buildWebViewWidget() {
+    // Android 平台使用 Hybrid Composition 模式，解决软键盘弹出时的掉帧问题
+    if (WebViewPlatform.instance is AndroidWebViewPlatform) {
+      return WebViewWidget.fromPlatformCreationParams(
+        params: AndroidWebViewWidgetCreationParams(
+          controller: _webViewController.platform,
+          // 关键：启用 Hybrid Composition 模式，提供更好的键盘支持
+          displayWithHybridComposition: true,
+        ),
+      );
+    }
+    // iOS 平台使用默认实现
+    return WebViewWidget(controller: _webViewController);
   }
 
   Widget _buildMainPage(bool isDark, Color primaryColor) {
@@ -556,7 +569,8 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
           bottom: false,
           child: Stack(
             children: [
-              WebViewWidget(controller: _webViewController),
+              // 使用 Hybrid Composition 模式的 WebViewWidget
+              _buildWebViewWidget(),
               if (_isLoading)
                 Container(
                   color: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
