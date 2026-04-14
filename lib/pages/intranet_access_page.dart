@@ -477,10 +477,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
       child: _showWebView
           ? _buildWebViewPage(isDark, primaryColor)
           : _buildMainPage(isDark, primaryColor),
-      // 关键：为 AnimatedSwitcher 设置不同的 key，确保正确识别页面切换
-      switchInCurve: Curves.easeInOutCubic,
-      switchOutCurve: Curves.easeInOutCubic,
-      // 关键：为 AnimatedSwitcher 的子元素设置不同的 key，确保正确识别页面切换
+      // 使用 Stack 布局确保动画过程中两个页面都能正确显示
       layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
         return Stack(
           fit: StackFit.expand,
@@ -551,6 +548,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
 
   Widget _buildWebViewPage(bool isDark, Color primaryColor) {
     return WillPopScope(
+      key: const ValueKey('webViewPage'),
       onWillPop: _handlePhysicalBackButton,
       child: Scaffold(
         backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
