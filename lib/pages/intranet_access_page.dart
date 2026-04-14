@@ -51,6 +51,12 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     });
   }
 
+  /// 重置页面状态 - 当点击底部导航栏内网按钮时调用
+  void resetToEntryPage() {
+    // 原生 WebView 是独立的 Activity，不需要重置状态
+    // 此方法保留用于兼容性
+  }
+
   void _showConfigDialog() {
     _ipController.text = _serverIp;
     final isDark = Theme.of(context).brightness == Brightness.dark;
