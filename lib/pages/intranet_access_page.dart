@@ -4,7 +4,7 @@ import 'package:vnt_app/theme/app_theme.dart';
 import 'package:vnt_app/utils/responsive_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// 内网访问页面 - 整合美团查询系统
+/// 内网访问页面 - 使用原生 WebView Activity 获得最佳键盘体验
 class IntranetAccessPage extends StatefulWidget {
   const IntranetAccessPage({super.key});
 
@@ -12,46 +12,18 @@ class IntranetAccessPage extends StatefulWidget {
   State<IntranetAccessPage> createState() => IntranetAccessPageState();
 }
 
-// 暴露 State 类以便外部访问
 class IntranetAccessPageState extends State<IntranetAccessPage> {
   static const String _serverIpKey = 'intranet_server_ip';
-  String _serverIp = '127.0.0.1';
-  bool _isLoading = true;
+  static const MethodChannel _channel = MethodChannel('top.wherewego.vnt/webview');
   
-  // MethodChannel 用于调用原生 WebView
-  static const MethodChannel _webViewChannel = MethodChannel('top.wherewego.vnt/webview');
-  final TextEditingController _ipController = TextEditingController();
+  String _serverIp = '127.0.0.1';
+  final _ipController = TextEditingController();
 
-  // 入口配置
-  final List<Map<String, dynamic>> _entries = [
-    {
-      'id': 'user',
-      'name': '用户端',
-      'desc': '查询服务',
-      'icon': Icons.person_outline,
-      'path': '/index.html',
-    },
-    {
-      'id': 'admin',
-      'name': '管理员',
-      'desc': '后台管理',
-      'icon': Icons.admin_panel_settings_outlined,
-      'path': '/admin/dashboard.html',
-    },
-    {
-      'id': 'asyn',
-      'name': '异步定时',
-      'desc': '定时任务',
-      'icon': Icons.timer_outlined,
-      'path': '/admin/asyn_post.html',
-    },
-    {
-      'id': 'ql',
-      'name': 'QL定时',
-      'desc': '青龙面板',
-      'icon': Icons.schedule_outlined,
-      'path': '/admin/ql_scheduler.html',
-    },
+  final _entries = const [
+    {'id': 'user', 'name': '用户端', 'desc': '查询服务', 'icon': Icons.person_outline, 'path': '/index.html'},
+    {'id': 'admin', 'name': '管理员', 'desc': '后台管理', 'icon': Icons.admin_panel_settings_outlined, 'path': '/admin/dashboard.html'},
+    {'id': 'asyn', 'name': '异步定时', 'desc': '定时任务', 'icon': Icons.timer_outlined, 'path': '/admin/asyn_post.html'},
+    {'id': 'ql', 'name': 'QL定时', 'desc': '青龙面板', 'icon': Icons.schedule_outlined, 'path': '/admin/ql_scheduler.html'},
   ];
 
   @override
@@ -62,179 +34,56 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
 
   Future<void> _loadServerIp() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _serverIp = prefs.getString(_serverIpKey) ?? '127.0.0.1';
-      _isLoading = false;
-    });
+    setState(() => _serverIp = prefs.getString(_serverIpKey) ?? '127.0.0.1');
   }
 
   Future<void> _saveServerIp(String ip) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_serverIpKey, ip);
-    setState(() {
-      _serverIp = ip;
+    setState(() => _serverIp = ip);
+  }
+
+  void _openEntry(Map<String, dynamic> entry) {
+    _channel.invokeMethod('openWebView', {
+      'url': 'http://$_serverIp${entry['path']}',
+      'title': entry['name'],
+      'serverIp': _serverIp,
     });
   }
 
-  String _buildUrl(String path) {
-    return 'http://$_serverIp$path';
-  }
-
-  /// 打开入口 - 使用原生 WebView Activity 获得更流畅的键盘体验
-  void _openEntry(Map<String, dynamic> entry) async {
-    final url = _buildUrl(entry['path']);
-    final title = entry['name'] as String;
-    
-    try {
-      await _webViewChannel.invokeMethod('openWebView', {
-        'url': url,
-        'title': title,
-        'serverIp': _serverIp,
-      });
-    } catch (e) {
-      debugPrint('打开原生 WebView 失败: $e');
-      // 如果原生 WebView 打开失败，可以在这里添加降级方案
-    }
-  }
-
-
-
   void _showConfigDialog() {
     _ipController.text = _serverIp;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).brightness == Brightness.dark
-            ? AppTheme.darkCardBackground
-            : AppTheme.lightCardBackground,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(context.cardRadius),
-        ),
-        title: Text(
-          '服务器配置',
-          style: TextStyle(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? AppTheme.darkTextPrimary
-                : AppTheme.lightTextPrimary,
-          ),
-        ),
+      builder: (_) => AlertDialog(
+        backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(context.cardRadius)),
+        title: Text('服务器配置', style: TextStyle(color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: EdgeInsets.all(context.spacingSmall),
-              decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white.withOpacity(0.05)
-                    : Colors.black.withOpacity(0.03),
-                borderRadius: BorderRadius.circular(context.cardRadius),
-              ),
-              child: Row(
-                children: [
-                  Text(
-                    '当前: ',
-                    style: TextStyle(
-                      fontSize: context.fontSmall,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? AppTheme.darkTextSecondary
-                          : AppTheme.lightTextSecondary,
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      _serverIp,
-                      style: TextStyle(
-                        fontSize: context.fontSmall,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? AppTheme.darkTextPrimary
-                            : AppTheme.lightTextPrimary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: context.spacingMedium),
             TextField(
               controller: _ipController,
               decoration: InputDecoration(
                 labelText: '服务器地址',
-                hintText: '例如: 127.0.0.1 或 192.168.1.100',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(context.cardRadius),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(context.cardRadius),
-                  borderSide: BorderSide(
-                    color: Theme.of(context).primaryColor,
-                    width: 2,
-                  ),
-                ),
-              ),
-              style: TextStyle(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? AppTheme.darkTextPrimary
-                    : AppTheme.lightTextPrimary,
-              ),
-            ),
-            SizedBox(height: context.spacingSmall),
-            Text(
-              '请输入IP地址或域名，不需要添加 http:// 前缀',
-              style: TextStyle(
-                fontSize: context.fontSmall,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? AppTheme.darkTextSecondary
-                    : AppTheme.lightTextSecondary,
+                hintText: '例如: 127.0.0.1',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(context.cardRadius)),
               ),
             ),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              '取消',
-              style: TextStyle(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? AppTheme.darkTextSecondary
-                    : AppTheme.lightTextSecondary,
-              ),
-            ),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
           ElevatedButton(
             onPressed: () async {
-              String ip = _ipController.text.trim();
-              
-              // 移除可能存在的 http:// 或 https:// 前缀
-              ip = ip.replaceAll(RegExp(r'^https?://'), '');
-              
-              // 移除可能存在的路径部分
-              ip = ip.split('/')[0];
-              
-              if (ip.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('请输入服务器地址')),
-                );
-                return;
+              var ip = _ipController.text.trim().replaceAll(RegExp(r'^https?://'), '').split('/')[0];
+              if (ip.isNotEmpty) {
+                await _saveServerIp(ip);
+                if (mounted) Navigator.pop(context);
               }
-              
-              await _saveServerIp(ip);
-              Navigator.pop(context);
-              
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('服务器配置已保存')),
-              );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(context.buttonRadius),
-              ),
-            ),
             child: const Text('保存'),
           ),
         ],
@@ -255,21 +104,14 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 页面头部
               _buildHeader(isDark, primaryColor),
               SizedBox(height: context.spacingLarge),
-
-              // 服务器信息卡片
-              _buildServerInfoCard(isDark, primaryColor),
+              _buildServerCard(isDark, primaryColor),
               SizedBox(height: context.spacingLarge),
-
-              // 入口选择
-              _buildSectionTitle(isDark, '访问入口'),
+              _buildSectionTitle(primaryColor, '访问入口'),
               SizedBox(height: context.spacingSmall),
               _buildEntryGrid(isDark, primaryColor),
               SizedBox(height: context.spacingLarge),
-
-              // 说明
               _buildTipsCard(isDark),
             ],
           ),
@@ -278,278 +120,122 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     );
   }
 
-  Widget _buildHeader(bool isDark, Color primaryColor) {
-    return Row(
+  Widget _buildHeader(bool isDark, Color primaryColor) => Row(
+    children: [
+      Container(
+        width: context.iconXLarge,
+        height: context.iconXLarge,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: [primaryColor, primaryColor.withOpacity(0.7)]),
+          borderRadius: BorderRadius.circular(context.cardRadius),
+        ),
+        child: Icon(Icons.language, color: Colors.white, size: context.iconLarge),
+      ),
+      SizedBox(width: context.spacingMedium),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('内网访问', style: TextStyle(fontSize: context.fontXLarge, fontWeight: FontWeight.bold, color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary)),
+            Text('访问内网服务', style: TextStyle(fontSize: context.fontBody, color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary)),
+          ],
+        ),
+      ),
+    ],
+  );
+
+  Widget _buildServerCard(bool isDark, Color primaryColor) => Container(
+    decoration: BoxDecoration(
+      color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+      borderRadius: BorderRadius.circular(context.cardRadius),
+      boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.08), blurRadius: 10, offset: const Offset(0, 4))],
+    ),
+    padding: ResponsiveUtils.padding(context, all: 16),
+    child: Row(
       children: [
         Container(
-          width: context.iconXLarge,
-          height: context.iconXLarge,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [primaryColor, primaryColor.withOpacity(0.7)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(context.cardRadius),
-          ),
-          child: Icon(
-            Icons.language,
-            color: Colors.white,
-            size: context.iconLarge,
-          ),
+          width: context.listItemIconContainerSize,
+          height: context.listItemIconContainerSize,
+          decoration: BoxDecoration(color: primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(context.cardRadius)),
+          child: Icon(Icons.dns_outlined, color: primaryColor, size: context.iconSmall),
         ),
         SizedBox(width: context.spacingMedium),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '内网访问',
-                style: TextStyle(
-                  fontSize: context.fontXLarge,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-                ),
-              ),
-              Text(
-                '访问内网服务',
-                style: TextStyle(
-                  fontSize: context.fontBody,
-                  color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-                ),
-              ),
+              Text('服务器地址', style: TextStyle(fontSize: context.fontMedium, fontWeight: FontWeight.w500, color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary)),
+              Text(_serverIp, style: TextStyle(fontSize: context.fontBody, color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary)),
             ],
           ),
         ),
+        IconButton(icon: Icon(Icons.edit, color: primaryColor, size: context.iconSmall), onPressed: _showConfigDialog),
       ],
-    );
-  }
+    ),
+  );
 
-  Widget _buildServerInfoCard(bool isDark, Color primaryColor) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
-        borderRadius: BorderRadius.circular(context.cardRadius),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: ResponsiveUtils.padding(context, all: 16),
+  Widget _buildSectionTitle(Color color, String title) => Padding(
+    padding: EdgeInsets.only(left: context.spacingXSmall / 2),
+    child: Text(title, style: TextStyle(fontSize: context.fontBody, fontWeight: FontWeight.w600, color: color)),
+  );
+
+  Widget _buildEntryGrid(bool isDark, Color primaryColor) => GridView.builder(
+    shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
+    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: context.spacingSmall, mainAxisSpacing: context.spacingSmall, childAspectRatio: 1.2),
+    itemCount: _entries.length,
+    itemBuilder: (_, index) => _buildEntryCard(_entries[index], isDark, primaryColor),
+  );
+
+  Widget _buildEntryCard(Map<String, dynamic> entry, bool isDark, Color primaryColor) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      onTap: () => _openEntry(entry),
+      borderRadius: BorderRadius.circular(context.cardRadius),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+          borderRadius: BorderRadius.circular(context.cardRadius),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.08), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: context.listItemIconContainerSize,
-                  height: context.listItemIconContainerSize,
-                  decoration: BoxDecoration(
-                    color: primaryColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(context.cardRadius),
-                  ),
-                  child: Icon(
-                    Icons.dns_outlined,
-                    color: primaryColor,
-                    size: context.iconSmall,
-                  ),
-                ),
-                SizedBox(width: context.spacingMedium),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '服务器地址',
-                        style: TextStyle(
-                          fontSize: context.fontMedium,
-                          fontWeight: FontWeight.w500,
-                          color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-                        ),
-                      ),
-                      Text(
-                        _serverIp,
-                        style: TextStyle(
-                          fontSize: context.fontBody,
-                          color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.edit,
-                    color: primaryColor,
-                    size: context.iconSmall,
-                  ),
-                  onPressed: _showConfigDialog,
-                ),
-              ],
+            Container(
+              width: context.iconXLarge,
+              height: context.iconXLarge,
+              decoration: BoxDecoration(color: primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(context.cardRadius)),
+              child: Icon(entry['icon'] as IconData, color: primaryColor, size: context.iconLarge),
             ),
+            SizedBox(height: context.spacingSmall),
+            Text(entry['name'] as String, style: TextStyle(fontSize: context.fontMedium, fontWeight: FontWeight.w600, color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary)),
+            SizedBox(height: context.spacingXSmall / 2),
+            Text(entry['desc'] as String, style: TextStyle(fontSize: context.fontSmall, color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary)),
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
 
-  Widget _buildSectionTitle(bool isDark, String title) {
-    final primaryColor = Theme.of(context).primaryColor;
-    return Padding(
-      padding: EdgeInsets.only(left: context.spacingXSmall / 2),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: context.fontBody,
-          fontWeight: FontWeight.w600,
-          color: primaryColor,
+  Widget _buildTipsCard(bool isDark) => Container(
+    padding: ResponsiveUtils.padding(context, all: 16),
+    decoration: BoxDecoration(color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03), borderRadius: BorderRadius.circular(context.cardRadius)),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.info_outline, size: context.iconSmall, color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary),
+            SizedBox(width: context.spacingSmall),
+            Text('使用说明', style: TextStyle(fontSize: context.fontMedium, fontWeight: FontWeight.w600, color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary)),
+          ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildEntryGrid(bool isDark, Color primaryColor) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: context.spacingSmall,
-        mainAxisSpacing: context.spacingSmall,
-        childAspectRatio: 1.2,
-      ),
-      itemCount: _entries.length,
-      itemBuilder: (context, index) {
-        final entry = _entries[index];
-        return _buildEntryCard(entry, isDark, primaryColor);
-      },
-    );
-  }
-
-  Widget _buildEntryCard(Map<String, dynamic> entry, bool isDark, Color primaryColor) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: 0.0, end: 1.0),
-      duration: Duration(milliseconds: 400 + (_entries.indexOf(entry) * 100)),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, child) {
-        return Transform.translate(
-          offset: Offset(0, (1 - value) * 20),
-          child: Opacity(
-            opacity: value,
-            child: child,
-          ),
-        );
-      },
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _openEntry(entry),
-          borderRadius: BorderRadius.circular(context.cardRadius),
-          splashColor: primaryColor.withOpacity(0.1),
-          highlightColor: primaryColor.withOpacity(0.05),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            decoration: BoxDecoration(
-              color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
-              borderRadius: BorderRadius.circular(context.cardRadius),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.08),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Hero(
-                  tag: 'entry_icon_${entry['id']}',
-                  child: Container(
-                    width: context.iconXLarge,
-                    height: context.iconXLarge,
-                    decoration: BoxDecoration(
-                      color: primaryColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(context.cardRadius),
-                    ),
-                    child: Icon(
-                      entry['icon'] as IconData,
-                      color: primaryColor,
-                      size: context.iconLarge,
-                    ),
-                  ),
-                ),
-                SizedBox(height: context.spacingSmall),
-                Text(
-                  entry['name'] as String,
-                  style: TextStyle(
-                    fontSize: context.fontMedium,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-                  ),
-                ),
-                SizedBox(height: context.spacingXSmall / 2),
-                Text(
-                  entry['desc'] as String,
-                  style: TextStyle(
-                    fontSize: context.fontSmall,
-                    color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTipsCard(bool isDark) {
-    return Container(
-      padding: ResponsiveUtils.padding(context, all: 16),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-        borderRadius: BorderRadius.circular(context.cardRadius),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.info_outline,
-                size: context.iconSmall,
-                color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-              ),
-              SizedBox(width: context.spacingSmall),
-              Text(
-                '使用说明',
-                style: TextStyle(
-                  fontSize: context.fontMedium,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: context.spacingSmall),
-          Text(
-            '• 用户端：普通查询服务\n• 管理员：后台管理功能\n• 异步定时：定时任务管理\n• QL定时：青龙面板管理',
-            style: TextStyle(
-              fontSize: context.fontSmall,
-              color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-              height: 1.6,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+        SizedBox(height: context.spacingSmall),
+        Text('• 用户端：普通查询服务\n• 管理员：后台管理功能\n• 异步定时：定时任务管理\n• QL定时：青龙面板管理',
+          style: TextStyle(fontSize: context.fontSmall, color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary, height: 1.6)),
+      ],
+    ),
+  );
 
   @override
   void dispose() {
