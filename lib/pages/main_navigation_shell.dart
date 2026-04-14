@@ -17,6 +17,9 @@ import 'package:vnt_app/utils/responsive_utils.dart';
 import 'dart:isolate';
 import 'package:vnt_app/src/rust/api/vnt_api.dart';
 
+// 导航 Channel - 用于接收原生 WebView 的页面切换通知
+const MethodChannel _navigationChannel = MethodChannel('top.wherewego.vnt/navigation');
+
 /// 主导航框架 - 响应式布局，支持侧边栏和底部导航
 class MainNavigationShell extends StatefulWidget {
   final VoidCallback? onThemeChanged;
@@ -64,6 +67,24 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   void initState() {
     super.initState();
     _autoConnect();
+    _setupNavigationChannel();
+  }
+
+  /// 设置导航 Channel 监听 - 接收原生 WebView 的页面切换通知
+  void _setupNavigationChannel() {
+    if (Platform.isAndroid) {
+      _navigationChannel.setMethodCallHandler((call) async {
+        if (call.method == 'navigateTo') {
+          final int index = call.arguments as int;
+          if (index >= 0 && index < _navItems.length) {
+            setState(() {
+              _selectedIndex = index;
+            });
+          }
+        }
+        return null;
+      });
+    }
   }
 
   /// 自动连接逻辑

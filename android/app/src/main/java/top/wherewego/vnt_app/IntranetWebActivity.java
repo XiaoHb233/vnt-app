@@ -35,6 +35,15 @@ public class IntranetWebActivity extends Activity {
     public static final String EXTRA_URL = "url";
     public static final String EXTRA_TITLE = "title";
     public static final String EXTRA_SERVER_IP = "server_ip";
+    
+    // 返回结果 - 告诉 Flutter 要切换到哪个页面
+    public static final String RESULT_NAVIGATE_TO = "navigate_to";
+    public static final int RESULT_DASHBOARD = 0;
+    public static final int RESULT_ROOM = 1;
+    public static final int RESULT_CONFIG = 2;
+    public static final int RESULT_INTRANET = 3;
+    public static final int RESULT_SETTINGS = 4;
+    public static final int RESULT_ABOUT = 5;
 
     private WebView webView;
     private ProgressBar progressBar;
@@ -70,19 +79,19 @@ public class IntranetWebActivity extends Activity {
     }
 
     private void initBottomNav() {
-        // 仪表盘 - 返回 Flutter 主页面
+        // 仪表盘 - 返回 Flutter 仪表盘页面
         findViewById(R.id.navDashboard).setOnClickListener(v -> {
-            finish();
+            navigateTo(RESULT_DASHBOARD);
         });
 
-        // 房间 - 返回 Flutter 主页面
+        // 房间 - 返回 Flutter 房间页面
         findViewById(R.id.navRoom).setOnClickListener(v -> {
-            finish();
+            navigateTo(RESULT_ROOM);
         });
 
-        // 配置 - 返回 Flutter 主页面
+        // 配置 - 返回 Flutter 配置页面
         findViewById(R.id.navConfig).setOnClickListener(v -> {
-            finish();
+            navigateTo(RESULT_CONFIG);
         });
 
         // 内网 - 刷新当前页面或返回入口
@@ -94,15 +103,26 @@ public class IntranetWebActivity extends Activity {
             }
         });
 
-        // 设置 - 返回 Flutter 主页面
+        // 设置 - 返回 Flutter 设置页面
         findViewById(R.id.navSettings).setOnClickListener(v -> {
-            finish();
+            navigateTo(RESULT_SETTINGS);
         });
 
-        // 关于 - 返回 Flutter 主页面
+        // 关于 - 返回 Flutter 关于页面
         findViewById(R.id.navAbout).setOnClickListener(v -> {
-            finish();
+            navigateTo(RESULT_ABOUT);
         });
+    }
+    
+    /**
+     * 导航到指定页面并关闭当前 Activity
+     * @param pageIndex 页面索引 (0-5)
+     */
+    private void navigateTo(int pageIndex) {
+        Intent resultIntent = new Intent();
+        resultIntent.putExtra(RESULT_NAVIGATE_TO, pageIndex);
+        setResult(RESULT_OK, resultIntent);
+        finish();
     }
 
     private void initTitleBar(String title) {

@@ -29,11 +29,14 @@ public class MainActivity extends FlutterActivity {
     private static final int VPN_REQUEST_CODE = 1;
     private static final int CREATE_FILE_REQUEST_CODE = 2;
     private static final int NOTIFICATION_PERMISSION_REQUEST_CODE = 3;
+    private static final int WEBVIEW_REQUEST_CODE = 4;
 
     private static final String FILE_CHANNEL = "top.wherewego.vnt/file";
     private static final String FILE_PICKER_CHANNEL = "top.wherewego.vnt/filepicker";
+    private static final String NAVIGATION_CHANNEL = "top.wherewego.vnt/navigation";
     private MethodChannel fileChannel;
     private MethodChannel filePickerChannel;
+    private MethodChannel navigationChannel;
     private String pendingFilePath;
     private MethodChannel.Result pendingFileResult;
 
@@ -181,7 +184,7 @@ public class MainActivity extends FlutterActivity {
                 intent.putExtra(IntranetWebActivity.EXTRA_URL, url);
                 intent.putExtra(IntranetWebActivity.EXTRA_TITLE, title != null ? title : "内网访问");
                 intent.putExtra(IntranetWebActivity.EXTRA_SERVER_IP, serverIp != null ? serverIp : "127.0.0.1");
-                startActivity(intent);
+                startActivityForResult(intent, WEBVIEW_REQUEST_CODE);
                 result.success(null);
             } else {
                 result.notImplemented();
@@ -232,6 +235,23 @@ public class MainActivity extends FlutterActivity {
                 result.notImplemented();
             }
         });
+
+        // Navigation Channel - 用于接收 WebView Activity 的页面切换通知
+        navigationChannel = new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), NAVIGATION_CHANNEL);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        
+        // 处理 WebView Activity 返回的导航结果
+        if (requestCode == WEBVIEW_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
+            int navigateTo = data.getIntExtra(IntranetWebActivity.RESULT_NAVIGATE_TO, -1);
+            if (navigateTo >= 0 && navigationChannel != null) {
+                // 通知 Flutter 切换到指定页面
+                navigationChannel.invokeMethod("navigateTo", navigateTo);
+            }
+        }
     }
 
     private void createFile(String fileName, String mimeType) {
