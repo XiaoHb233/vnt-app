@@ -30,10 +30,8 @@ dependencies:
   file_picker: ^8.0.0
   share_plus: ^7.2.2
   flex_color_picker: ^3.3.0
-  webview_flutter: ^4.8.0
-  # WebView 平台特定实现
-  webview_flutter_android: ^3.16.0
-  webview_flutter_wkwebview: ^3.13.0
+  # 使用 flutter_inappwebview 替代 webview_flutter，性能更好
+  flutter_inappwebview: ^6.0.0
 
 dev_dependencies:
   flutter_test:
