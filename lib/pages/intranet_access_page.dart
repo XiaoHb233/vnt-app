@@ -452,11 +452,29 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).primaryColor;
 
-    // 使用简单的条件渲染，避免 AnimatedSwitcher 在键盘弹出时的性能开销
-    if (_showWebView) {
-      return _buildWebViewPage(isDark, primaryColor);
-    }
-    return _buildMainPage(isDark, primaryColor);
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      transitionBuilder: (Widget child, Animation<double> animation) {
+        final bool isWebView = child.key == const ValueKey('webViewPage');
+        final offsetAnimation = Tween<Offset>(
+          begin: isWebView ? const Offset(1.0, 0.0) : const Offset(-1.0, 0.0),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeInOutCubic,
+        ));
+        return SlideTransition(
+          position: offsetAnimation,
+          child: FadeTransition(
+            opacity: animation,
+            child: child,
+          ),
+        );
+      },
+      child: _showWebView
+          ? _buildWebViewPage(isDark, primaryColor)
+          : _buildMainPage(isDark, primaryColor),
+    );
   }
 
   /// 构建 WebViewWidget，Android 平台使用 Hybrid Composition 模式优化键盘体验
@@ -510,6 +528,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
 
   Widget _buildWebViewPage(bool isDark, Color primaryColor) {
     return WillPopScope(
+      key: const ValueKey('webViewPage'),
       onWillPop: _handlePhysicalBackButton,
       child: Scaffold(
         backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
