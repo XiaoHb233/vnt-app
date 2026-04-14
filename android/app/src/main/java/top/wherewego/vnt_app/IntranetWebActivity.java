@@ -20,13 +20,12 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
 
 /**
  * 原生 WebView Activity - 用于内网访问
  * 提供比 Flutter WebView 更流畅的键盘体验
  */
-public class IntranetWebActivity extends AppCompatActivity {
+public class IntranetWebActivity extends Activity {
     private static final String TAG = "IntranetWebActivity";
     private static final int FILE_CHOOSER_REQUEST_CODE = 1001;
     private static final long BACK_INTERVAL = 1500;
@@ -47,7 +46,7 @@ public class IntranetWebActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_intranet_web);
 
         Intent intent = getIntent();
@@ -55,11 +54,6 @@ public class IntranetWebActivity extends AppCompatActivity {
         String title = intent.getStringExtra(EXTRA_TITLE);
         serverIp = intent.getStringExtra(EXTRA_SERVER_IP);
         currentUrl = url;
-
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle(title != null ? title : "内网访问");
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        }
 
         webView = findViewById(R.id.webView);
         progressBar = findViewById(R.id.progressBar);
@@ -105,7 +99,7 @@ public class IntranetWebActivity extends AppCompatActivity {
 
             @Override
             public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> callback,
-                                             FileChooserParams params) {
+                                             WebChromeClient.FileChooserParams params) {
                 filePathCallback = callback;
                 openFileChooser(params);
                 return true;
@@ -117,13 +111,13 @@ public class IntranetWebActivity extends AppCompatActivity {
         }
     }
 
-    private void openFileChooser(FileChooserParams params) {
+    private void openFileChooser(WebChromeClient.FileChooserParams params) {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         
         String[] acceptTypes = params.getAcceptTypes();
         intent.setType(acceptTypes.length > 0 && !acceptTypes[0].isEmpty() ? acceptTypes[0] : "*/*");
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE);
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, params.getMode() == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE);
         
         startActivityForResult(Intent.createChooser(intent, "选择文件"), FILE_CHOOSER_REQUEST_CODE);
     }
@@ -183,12 +177,6 @@ public class IntranetWebActivity extends AppCompatActivity {
 
     private void showToast(String message) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    public boolean onSupportNavigateUp() {
-        finish();
-        return true;
     }
 
     @Override
