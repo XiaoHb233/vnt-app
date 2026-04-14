@@ -308,6 +308,8 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     
     showDialog(
       context: context,
+      // 使用更简单的动画，减少掉帧
+      barrierDismissible: true,
       builder: (context) => AlertDialog(
         backgroundColor: Theme.of(context).brightness == Brightness.dark
             ? AppTheme.darkCardBackground
@@ -364,6 +366,8 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
             SizedBox(height: context.spacingMedium),
             TextField(
               controller: _ipController,
+              // 手机端不自动聚焦，避免弹窗时掉帧
+              autofocus: false,
               decoration: InputDecoration(
                 labelText: '服务器地址',
                 hintText: '例如: 127.0.0.1 或 192.168.1.100',
