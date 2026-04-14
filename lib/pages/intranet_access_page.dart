@@ -289,6 +289,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
   }
 
   void _closeWebView() {
+    _lastBackTime = null; // 重置返回时间
     setState(() {
       _showWebView = false;
       _currentUrl = '';
@@ -476,6 +477,9 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
       child: _showWebView
           ? _buildWebViewPage(isDark, primaryColor)
           : _buildMainPage(isDark, primaryColor),
+      // 关键：为 AnimatedSwitcher 设置不同的 key，确保正确识别页面切换
+      switchInCurve: Curves.easeInOutCubic,
+      switchOutCurve: Curves.easeInOutCubic,
       // 关键：为 AnimatedSwitcher 的子元素设置不同的 key，确保正确识别页面切换
       layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
         return Stack(
@@ -883,6 +887,8 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
   @override
   void dispose() {
     _ipController.dispose();
+    // 释放 WebViewController 资源
+    _webViewController.dispose();
     super.dispose();
   }
 }
