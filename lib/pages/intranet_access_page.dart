@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:vnt_app/theme/app_theme.dart';
@@ -10,8 +9,6 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 // 文件选择器
 import 'package:file_picker/file_picker.dart';
-// 用于获取 Content URI
-import 'package:path_provider/path_provider.dart';
 
 /// 内网访问页面 - 整合美团查询系统
 class IntranetAccessPage extends StatefulWidget {
