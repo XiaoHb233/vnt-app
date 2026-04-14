@@ -882,8 +882,6 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
   @override
   void dispose() {
     _ipController.dispose();
-    // 释放 WebViewController 资源
-    _webViewController.dispose();
     super.dispose();
   }
 }
