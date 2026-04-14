@@ -162,6 +162,11 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     _webViewController?.reload();
   }
 
+  // 重置到入口页面（供外部调用）
+  void resetToEntryPage() {
+    _closeWebView();
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -274,7 +279,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
                 ),
                 android: AndroidInAppWebViewOptions(
                   // 允许混合内容（HTTP/HTTPS）
-                  mixedContentMode: AndroidMixedContentMode.COMPATIBILITY_MODE,
+                  mixedContentMode: AndroidMixedContentMode.MIXED_CONTENT_COMPATIBILITY_MODE,
                   // 媒体播放不需要用户手势
                   mediaPlaybackRequiresUserGesture: false,
                   // 数据库支持
