@@ -66,9 +66,6 @@ public class IntranetWebActivity extends Activity {
         serverIp = intent.getStringExtra(EXTRA_SERVER_IP);
         currentUrl = url;
 
-        // 初始化标题栏
-        initTitleBar(title);
-
         // 初始化底部导航栏
         initBottomNav();
 
@@ -123,17 +120,6 @@ public class IntranetWebActivity extends Activity {
         resultIntent.putExtra(RESULT_NAVIGATE_TO, pageIndex);
         setResult(RESULT_OK, resultIntent);
         finish();
-    }
-
-    private void initTitleBar(String title) {
-        TextView titleText = findViewById(R.id.titleText);
-        ImageButton backButton = findViewById(R.id.backButton);
-
-        if (title != null && !title.isEmpty()) {
-            titleText.setText(title);
-        }
-
-        backButton.setOnClickListener(v -> finish());
     }
 
     private void initWebView(String url) {
