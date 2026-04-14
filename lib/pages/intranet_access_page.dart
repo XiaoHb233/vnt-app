@@ -111,8 +111,14 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     // Android 特定设置：确保使用应用的网络栈（包括 VPN）
     if (_webViewController.platform is AndroidWebViewController) {
       AndroidWebViewController.enableDebugging(true);
+      
+      // 优化 WebView 性能：禁用媒体播放需要用户手势，减少资源占用
       (_webViewController.platform as AndroidWebViewController)
           .setMediaPlaybackRequiresUserGesture(false);
+      
+      // 优化 WebView 性能：设置透明背景，减少键盘弹出时的重绘
+      (_webViewController.platform as AndroidWebViewController)
+          .setBackgroundColor(Colors.transparent);
       
       // 配置文件上传支持
       (_webViewController.platform as AndroidWebViewController)
@@ -308,8 +314,6 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     
     showDialog(
       context: context,
-      // 使用更简单的动画，减少掉帧
-      barrierDismissible: true,
       builder: (context) => AlertDialog(
         backgroundColor: Theme.of(context).brightness == Brightness.dark
             ? AppTheme.darkCardBackground
@@ -366,8 +370,6 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
             SizedBox(height: context.spacingMedium),
             TextField(
               controller: _ipController,
-              // 手机端不自动聚焦，避免弹窗时掉帧
-              autofocus: false,
               decoration: InputDecoration(
                 labelText: '服务器地址',
                 hintText: '例如: 127.0.0.1 或 192.168.1.100',
@@ -521,7 +523,6 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
       key: const ValueKey('webViewPage'),
       onWillPop: _handlePhysicalBackButton, // 使用与 HBuilder_app 一致的双重返回逻辑
       child: Scaffold(
-        resizeToAvoidBottomInset: false, // 防止键盘弹出时调整布局，避免掉帧
         backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
         appBar: AppBar(
           backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
