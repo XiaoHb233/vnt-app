@@ -3,12 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:vnt_app/theme/app_theme.dart';
 import 'package:vnt_app/utils/responsive_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-// 导入平台特定的 WebView 设置
-import 'package:webview_flutter_android/webview_flutter_android.dart';
-import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
-// 文件选择器
-import 'package:file_picker/file_picker.dart';
 
 /// 内网访问页面 - 整合美团查询系统
 class IntranetAccessPage extends StatefulWidget {
@@ -23,14 +17,10 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
   static const String _serverIpKey = 'intranet_server_ip';
   String _serverIp = '127.0.0.1';
   bool _isLoading = true;
-  bool _showWebView = false;
-  String _currentUrl = '';
-  String _currentTitle = '';
   
-  late WebViewController _webViewController;
+  // MethodChannel 用于调用原生 WebView
+  static const MethodChannel _webViewChannel = MethodChannel('top.wherewego.vnt/webview');
   final TextEditingController _ipController = TextEditingController();
-  // 缓存 WebViewWidget，避免重复创建
-  Widget? _cachedWebViewWidget;
 
   // 入口配置
   final List<Map<String, dynamic>> _entries = [
@@ -67,192 +57,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
   @override
   void initState() {
     super.initState();
-    _initWebView();
     _loadServerIp();
-  }
-
-  void _initWebView() {
-    // 创建平台特定的参数
-    late final PlatformWebViewControllerCreationParams params;
-    if (WebViewPlatform.instance is WebKitWebViewPlatform) {
-      params = WebKitWebViewControllerCreationParams(
-        allowsInlineMediaPlayback: true,
-        mediaTypesRequiringUserAction: const <PlaybackMediaTypes>{},
-      );
-    } else {
-      params = const PlatformWebViewControllerCreationParams();
-    }
-
-    _webViewController = WebViewController.fromPlatformCreationParams(params)
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (String url) {
-            setState(() {
-              _isLoading = true;
-            });
-          },
-          onPageFinished: (String url) {
-            setState(() {
-              _isLoading = false;
-            });
-          },
-          onWebResourceError: (WebResourceError error) {
-            debugPrint('WebView 错误: ${error.errorCode} - ${error.description}');
-            setState(() {
-              _isLoading = false;
-            });
-          },
-        ),
-      )
-      ..setUserAgent('Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36');
-
-    // Android 特定设置：确保使用应用的网络栈（包括 VPN）
-    if (_webViewController.platform is AndroidWebViewController) {
-      AndroidWebViewController.enableDebugging(true);
-      final androidController = _webViewController.platform as AndroidWebViewController;
-
-      // 禁用媒体播放需要用户手势
-      androidController.setMediaPlaybackRequiresUserGesture(false);
-
-      // 配置文件上传支持
-      androidController.setOnShowFileSelector((FileSelectorParams params) async {
-        try {
-          // 根据 acceptTypes 决定文件类型
-          FileType fileType = FileType.any;
-          List<String>? allowedExtensions;
-          final acceptTypes = params.acceptTypes;
-          
-          if (acceptTypes.isNotEmpty) {
-            // 检查是否是图片
-            if (acceptTypes.any((type) => 
-                type.contains('image') || type.contains('jpg') || type.contains('png'))) {
-              fileType = FileType.image;
-            } 
-            // 检查是否是 Python 文件
-            else if (acceptTypes.any((type) => 
-                type.contains('python') || type.contains('.py'))) {
-              fileType = FileType.custom;
-              allowedExtensions = ['py'];
-            }
-          }
-          
-          // 使用 FilePicker 选择文件
-          final result = await FilePicker.platform.pickFiles(
-            type: fileType,
-            allowedExtensions: allowedExtensions,
-            allowMultiple: params.mode == FileSelectorMode.openMultiple,
-            // 关键：使用 withData: true 获取文件内容
-            withData: false,
-            withReadStream: false,
-          );
-          
-          // 返回 Content URI 列表
-          if (result != null && result.files.isNotEmpty) {
-            final List<String> uris = [];
-            for (final file in result.files) {
-              if (file.path != null) {
-                // 将本地路径转换为 Content URI
-                final contentUri = await _getContentUri(file.path!, file.name);
-                if (contentUri != null) {
-                  uris.add(contentUri);
-                }
-              }
-            }
-            return uris;
-          }
-          return [];
-        } catch (e) {
-          debugPrint('文件选择错误: $e');
-          return [];
-        }
-      });
-    }
-  }
-
-  /// 将本地文件路径转换为 Content URI
-  /// 这是 Android WebView 文件上传必需的格式
-  Future<String?> _getContentUri(String filePath, String fileName) async {
-    try {
-      // 使用 MethodChannel 调用原生代码获取 Content URI
-      const platform = MethodChannel('top.wherewego.vnt/filepicker');
-      final String? contentUri = await platform.invokeMethod('getContentUri', {
-        'filePath': filePath,
-        'fileName': fileName,
-      });
-      return contentUri;
-    } catch (e) {
-      debugPrint('获取 Content URI 失败: $e');
-      // 如果原生方法失败，尝试使用 file:// 协议作为后备
-      // 注意：这可能不适用于所有 Android 版本
-      return 'file://$filePath';
-    }
-  }
-
-  // 上次返回时间（用于双重返回逻辑）
-  int? _lastBackTime;
-  static const int _backInterval = 1500; // 1.5秒内双击返回
-
-  // 处理返回按钮点击 - 与 HBuilder_app 一致：直接返回入口页面
-  void _handleBackButton() {
-    _closeWebView();
-  }
-
-  // 处理物理返回键 - 与 HBuilder_app 一致：双重返回逻辑
-  Future<bool> _handlePhysicalBackButton() async {
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final adminUrl = 'http://$_serverIp/admin/dashboard.html';
-
-    // 第一次按返回键（1.5秒内）
-    if (_lastBackTime == null || now - _lastBackTime! > _backInterval) {
-      _lastBackTime = now;
-
-      try {
-        // 获取当前 URL
-        final currentUrl = await _webViewController.currentUrl() ?? '';
-
-        // 检查当前是否在 AsynPost 或 QL 页面
-        if (currentUrl.contains('/asyn_post.html') ||
-            currentUrl.contains('/ql_scheduler.html')) {
-          // 直接跳转到后台首页
-          await _webViewController.loadRequest(Uri.parse(adminUrl));
-          _showToast('已返回后台');
-        } else {
-          // 尝试历史记录返回
-          if (await _webViewController.canGoBack()) {
-            await _webViewController.goBack();
-            _showToast('再按一次返回首页');
-          } else {
-            // 没有历史记录，关闭 WebView 回到入口页面
-            _closeWebView();
-            return false; // 返回 false 阻止页面退出，只是切换显示状态
-          }
-        }
-      } catch (e) {
-        // 出错时直接跳转到后台首页
-        await _webViewController.loadRequest(Uri.parse(adminUrl));
-        _showToast('已返回后台');
-      }
-
-      return false; // 不退出页面
-    } else {
-      // 第二次按返回键（1.5秒内）：关闭 WebView 回到入口页面
-      _lastBackTime = null;
-      _closeWebView();
-      return false; // 返回 false 阻止页面退出，只是切换显示状态
-    }
-  }
-
-  // 显示提示（类似 HBuilder_app 的 showGestureHint）
-  void _showToast(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(milliseconds: 1500),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.black87,
-      ),
-    );
   }
 
   Future<void> _loadServerIp() async {
@@ -275,34 +80,24 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     return 'http://$_serverIp$path';
   }
 
-  void _openEntry(Map<String, dynamic> entry) {
+  /// 打开入口 - 使用原生 WebView Activity 获得更流畅的键盘体验
+  void _openEntry(Map<String, dynamic> entry) async {
     final url = _buildUrl(entry['path']);
-    setState(() {
-      _currentUrl = url;
-      _currentTitle = entry['name'];
-      _showWebView = true;
-    });
-    _webViewController.loadRequest(Uri.parse(url));
-  }
-
-  void _closeWebView() {
-    _lastBackTime = null; // 重置返回时间
-    setState(() {
-      _showWebView = false;
-      _currentUrl = '';
-    });
-  }
-
-  /// 重置页面状态 - 当点击底部导航栏内网按钮时调用
-  void resetToEntryPage() {
-    if (_showWebView) {
-      _closeWebView();
+    final title = entry['name'] as String;
+    
+    try {
+      await _webViewChannel.invokeMethod('openWebView', {
+        'url': url,
+        'title': title,
+        'serverIp': _serverIp,
+      });
+    } catch (e) {
+      debugPrint('打开原生 WebView 失败: $e');
+      // 如果原生 WebView 打开失败，可以在这里添加降级方案
     }
   }
 
-  void _refreshPage() {
-    _webViewController.reload();
-  }
+
 
   void _showConfigDialog() {
     _ipController.text = _serverIp;
@@ -452,67 +247,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).primaryColor;
 
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 300),
-      transitionBuilder: (Widget child, Animation<double> animation) {
-        // 根据 _showWebView 状态判断动画方向，而不是依赖 child.key
-        final offsetAnimation = Tween<Offset>(
-          begin: _showWebView ? const Offset(1.0, 0.0) : const Offset(-1.0, 0.0),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeInOutCubic,
-        ));
-        return SlideTransition(
-          position: offsetAnimation,
-          child: FadeTransition(
-            opacity: animation,
-            child: child,
-          ),
-        );
-      },
-      child: _showWebView
-          ? _buildWebViewPage(isDark, primaryColor)
-          : _buildMainPage(isDark, primaryColor),
-      // 使用 Stack 布局确保动画过程中两个页面都能正确显示
-      layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
-        return Stack(
-          fit: StackFit.expand,
-          children: <Widget>[
-            ...previousChildren,
-            if (currentChild != null) currentChild,
-          ],
-        );
-      },
-    );
-  }
-
-  /// 构建 WebViewWidget，Android 平台使用 Hybrid Composition 模式优化键盘体验
-  Widget _buildWebViewWidget() {
-    // 使用缓存的 WebViewWidget，避免重复创建
-    if (_cachedWebViewWidget != null) {
-      return _cachedWebViewWidget!;
-    }
-
-    // Android 平台使用 Hybrid Composition 模式，解决软键盘弹出时的掉帧问题
-    if (WebViewPlatform.instance is AndroidWebViewPlatform) {
-      _cachedWebViewWidget = WebViewWidget.fromPlatformCreationParams(
-        params: AndroidWebViewWidgetCreationParams(
-          controller: _webViewController.platform,
-          // 关键：启用 Hybrid Composition 模式，提供更好的键盘支持
-          displayWithHybridComposition: true,
-        ),
-      );
-    } else {
-      // iOS 平台使用默认实现
-      _cachedWebViewWidget = WebViewWidget(controller: _webViewController);
-    }
-    return _cachedWebViewWidget!;
-  }
-
-  Widget _buildMainPage(bool isDark, Color primaryColor) {
     return Scaffold(
-      key: const ValueKey('mainPage'),
       backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
       body: SafeArea(
         child: SingleChildScrollView(
@@ -538,69 +273,6 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
               _buildTipsCard(isDark),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWebViewPage(bool isDark, Color primaryColor) {
-    return WillPopScope(
-      key: const ValueKey('webViewPage'),
-      onWillPop: _handlePhysicalBackButton,
-      child: Scaffold(
-        backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
-        appBar: AppBar(
-          backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back,
-              color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-            ),
-            onPressed: _handleBackButton,
-          ),
-          title: Text(
-            _currentTitle,
-            style: TextStyle(
-              color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-              fontSize: context.fontMedium,
-            ),
-          ),
-          actions: [
-            IconButton(
-              icon: Icon(
-                Icons.refresh,
-                color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-              ),
-              onPressed: _refreshPage,
-            ),
-          ],
-        ),
-        body: Stack(
-          children: [
-            _buildWebViewWidget(),
-            if (_isLoading)
-              Container(
-                color: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(
-                        color: primaryColor,
-                      ),
-                      SizedBox(height: context.spacingMedium),
-                      Text(
-                        '正在连接服务器...',
-                        style: TextStyle(
-                          color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
         ),
       ),
     );

@@ -164,6 +164,30 @@ public class MainActivity extends FlutterActivity {
             }
         });
 
+        // WebView Channel - 用于打开原生 WebView Activity
+        MethodChannel webViewChannel = new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), "top.wherewego.vnt/webview");
+        webViewChannel.setMethodCallHandler((call, result) -> {
+            if (call.method.equals("openWebView")) {
+                String url = call.argument("url");
+                String title = call.argument("title");
+                String serverIp = call.argument("serverIp");
+
+                if (url == null) {
+                    result.error("INVALID_ARGUMENT", "url is required", null);
+                    return;
+                }
+
+                Intent intent = new Intent(this, IntranetWebActivity.class);
+                intent.putExtra(IntranetWebActivity.EXTRA_URL, url);
+                intent.putExtra(IntranetWebActivity.EXTRA_TITLE, title != null ? title : "内网访问");
+                intent.putExtra(IntranetWebActivity.EXTRA_SERVER_IP, serverIp != null ? serverIp : "127.0.0.1");
+                startActivity(intent);
+                result.success(null);
+            } else {
+                result.notImplemented();
+            }
+        });
+
         // File Picker Channel - 用于 WebView 文件上传，将本地路径转换为 Content URI
         filePickerChannel = new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), FILE_PICKER_CHANNEL);
         filePickerChannel.setMethodCallHandler((call, result) -> {
