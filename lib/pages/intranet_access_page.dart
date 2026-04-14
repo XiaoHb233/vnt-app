@@ -452,32 +452,11 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).primaryColor;
 
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 300),
-      transitionBuilder: (Widget child, Animation<double> animation) {
-        // WebView 页面从右侧滑入，主页面从左侧滑入
-        final bool isWebView = child is WillPopScope;
-
-        final offsetAnimation = Tween<Offset>(
-          begin: isWebView ? const Offset(1.0, 0.0) : const Offset(-1.0, 0.0),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeInOutCubic,
-        ));
-
-        return SlideTransition(
-          position: offsetAnimation,
-          child: FadeTransition(
-            opacity: animation,
-            child: child,
-          ),
-        );
-      },
-      child: _showWebView
-          ? _buildWebViewPage(isDark, primaryColor)
-          : _buildMainPage(isDark, primaryColor),
-    );
+    // 使用简单的条件渲染，避免 AnimatedSwitcher 在键盘弹出时的性能开销
+    if (_showWebView) {
+      return _buildWebViewPage(isDark, primaryColor);
+    }
+    return _buildMainPage(isDark, primaryColor);
   }
 
   /// 构建 WebViewWidget，Android 平台使用 Hybrid Composition 模式优化键盘体验
@@ -531,12 +510,9 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
 
   Widget _buildWebViewPage(bool isDark, Color primaryColor) {
     return WillPopScope(
-      key: const ValueKey('webViewPage'),
-      onWillPop: _handlePhysicalBackButton, // 使用与 HBuilder_app 一致的双重返回逻辑
+      onWillPop: _handlePhysicalBackButton,
       child: Scaffold(
         backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
-        // 关键：设置为 false 避免软键盘弹出时页面重绘导致的掉帧
-        resizeToAvoidBottomInset: false,
         appBar: AppBar(
           backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
           elevation: 0,
@@ -564,36 +540,31 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
             ),
           ],
         ),
-        body: SafeArea(
-          // 关键：使用 SafeArea 的 bottom: false 避免软键盘弹出时的布局抖动
-          bottom: false,
-          child: Stack(
-            children: [
-              // 使用 Hybrid Composition 模式的 WebViewWidget
-              _buildWebViewWidget(),
-              if (_isLoading)
-                Container(
-                  color: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(
-                          color: primaryColor,
+        body: Stack(
+          children: [
+            _buildWebViewWidget(),
+            if (_isLoading)
+              Container(
+                color: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(
+                        color: primaryColor,
+                      ),
+                      SizedBox(height: context.spacingMedium),
+                      Text(
+                        '正在连接服务器...',
+                        style: TextStyle(
+                          color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
                         ),
-                        SizedBox(height: context.spacingMedium),
-                        Text(
-                          '正在连接服务器...',
-                          style: TextStyle(
-                            color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );
