@@ -517,6 +517,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
       key: const ValueKey('webViewPage'),
       onWillPop: _handlePhysicalBackButton, // 使用与 HBuilder_app 一致的双重返回逻辑
       child: Scaffold(
+        resizeToAvoidBottomInset: false, // 防止键盘弹出时调整布局，避免掉帧
         backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
         appBar: AppBar(
           backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
