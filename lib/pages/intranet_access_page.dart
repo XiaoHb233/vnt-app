@@ -25,7 +25,6 @@ class IntranetAccessPage extends StatefulWidget {
 class IntranetAccessPageState extends State<IntranetAccessPage> {
   static const String _serverIpKey = 'intranet_server_ip';
   String _serverIp = '127.0.0.1';
-  bool _isLoading = true;
   bool _showWebView = false;
   String _currentUrl = '';
   String _currentTitle = '';
@@ -33,8 +32,11 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
   late WebViewController _webViewController;
   final TextEditingController _ipController = TextEditingController();
 
+  // 使用 ValueNotifier 替代 setState，减少 WebView 页面重建
+  final ValueNotifier<bool> _loadingNotifier = ValueNotifier<bool>(true);
+
   // 入口配置
-  final List<Map<String, dynamic>> _entries = [
+  final List<Map<String, dynamic>> _entries = const [
     {
       'id': 'user',
       'name': '用户端',
@@ -89,20 +91,14 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
-            setState(() {
-              _isLoading = true;
-            });
+            _loadingNotifier.value = true;
           },
           onPageFinished: (String url) {
-            setState(() {
-              _isLoading = false;
-            });
+            _loadingNotifier.value = false;
           },
           onWebResourceError: (WebResourceError error) {
             debugPrint('WebView 错误: ${error.errorCode} - ${error.description}');
-            setState(() {
-              _isLoading = false;
-            });
+            _loadingNotifier.value = false;
           },
         ),
       )
@@ -259,7 +255,6 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _serverIp = prefs.getString(_serverIpKey) ?? '127.0.0.1';
-      _isLoading = false;
     });
   }
 
@@ -452,25 +447,21 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     final primaryColor = Theme.of(context).primaryColor;
 
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 200),
       transitionBuilder: (Widget child, Animation<double> animation) {
-        // WebView 页面从右侧滑入，主页面从左侧滑入
         final bool isWebView = child is WillPopScope;
-        
+
         final offsetAnimation = Tween<Offset>(
           begin: isWebView ? const Offset(1.0, 0.0) : const Offset(-1.0, 0.0),
           end: Offset.zero,
         ).animate(CurvedAnimation(
           parent: animation,
-          curve: Curves.easeInOutCubic,
+          curve: Curves.easeInOut,
         ));
-        
+
         return SlideTransition(
           position: offsetAnimation,
-          child: FadeTransition(
-            opacity: animation,
-            child: child,
-          ),
+          child: child,
         );
       },
       child: _showWebView
@@ -547,28 +538,40 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
         ),
         body: Stack(
           children: [
-            WebViewWidget(controller: _webViewController),
-            if (_isLoading)
-              Container(
-                color: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(
-                        color: primaryColor,
-                      ),
-                      SizedBox(height: context.spacingMedium),
-                      Text(
-                        '正在连接服务器...',
-                        style: TextStyle(
-                          color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+            RepaintBoundary(
+              child: WebViewWidget(controller: _webViewController),
+            ),
+            ValueListenableBuilder<bool>(
+              valueListenable: _loadingNotifier,
+              builder: (context, isLoading, child) {
+                return isLoading
+                    ? Container(
+                        color: isDark
+                            ? AppTheme.darkBackground
+                            : AppTheme.lightBackground,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              CircularProgressIndicator(
+                                color: primaryColor,
+                              ),
+                              SizedBox(height: context.spacingMedium),
+                              Text(
+                                '正在连接服务器...',
+                                style: TextStyle(
+                                  color: isDark
+                                      ? AppTheme.darkTextSecondary
+                                      : AppTheme.lightTextSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+                      )
+                    : const SizedBox.shrink();
+              },
+            ),
           ],
         ),
       ),
@@ -851,6 +854,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
   @override
   void dispose() {
     _ipController.dispose();
+    _loadingNotifier.dispose();
     super.dispose();
   }
 }

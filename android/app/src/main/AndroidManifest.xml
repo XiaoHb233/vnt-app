@@ -25,7 +25,9 @@
         android:icon="@mipmap/ic_launcher"
         android:label="VNT"
         android:requestLegacyExternalStorage="true"
-        android:networkSecurityConfig="@xml/network_security_config">
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:hardwareAccelerated="true"
+        android:largeHeap="true">
         <!-- FileProvider配置：file_picker插件需要 -->
         <provider
             android:name="androidx.core.content.FileProvider"
