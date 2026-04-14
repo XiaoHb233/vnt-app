@@ -240,20 +240,6 @@ public class MainActivity extends FlutterActivity {
         navigationChannel = new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), NAVIGATION_CHANNEL);
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        
-        // 处理 WebView Activity 返回的导航结果
-        if (requestCode == WEBVIEW_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
-            int navigateTo = data.getIntExtra(IntranetWebActivity.RESULT_NAVIGATE_TO, -1);
-            if (navigateTo >= 0 && navigationChannel != null) {
-                // 通知 Flutter 切换到指定页面
-                navigationChannel.invokeMethod("navigateTo", navigateTo);
-            }
-        }
-    }
-
     private void createFile(String fileName, String mimeType) {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -306,6 +292,13 @@ public class MainActivity extends FlutterActivity {
                 }
             }
             pendingFilePath = null;
+        } else if (requestCode == WEBVIEW_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
+            // 处理 WebView Activity 返回的导航结果
+            int navigateTo = data.getIntExtra(IntranetWebActivity.RESULT_NAVIGATE_TO, -1);
+            if (navigateTo >= 0 && navigationChannel != null) {
+                // 通知 Flutter 切换到指定页面
+                navigationChannel.invokeMethod("navigateTo", navigateTo);
+            }
         }
         super.onActivityResult(requestCode, resultCode, data);
     }
