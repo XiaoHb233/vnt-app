@@ -4,19 +4,16 @@ import 'package:flutter/services.dart';
 import 'package:vnt_app/theme/app_theme.dart';
 import 'package:vnt_app/utils/responsive_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-// 使用 flutter_inappwebview 替代 webview_flutter，性能更好
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+// 导入平台特定的 WebView 设置
+import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 // 文件选择器
 import 'package:file_picker/file_picker.dart';
 // 用于获取 Content URI
 import 'package:path_provider/path_provider.dart';
 
 /// 内网访问页面 - 整合美团查询系统
-/// 
-/// 使用 flutter_inappwebview 优化性能：
-/// 1. 硬件加速渲染
-/// 2. 更流畅的滚动体验
-/// 3. 更好的 JavaScript 性能
 class IntranetAccessPage extends StatefulWidget {
   const IntranetAccessPage({super.key});
 
@@ -28,19 +25,16 @@ class IntranetAccessPage extends StatefulWidget {
 class IntranetAccessPageState extends State<IntranetAccessPage> {
   static const String _serverIpKey = 'intranet_server_ip';
   String _serverIp = '127.0.0.1';
+  bool _isLoading = true;
   bool _showWebView = false;
   String _currentUrl = '';
   String _currentTitle = '';
   
-  // InAppWebView 控制器
-  InAppWebViewController? _webViewController;
+  late WebViewController _webViewController;
   final TextEditingController _ipController = TextEditingController();
 
-  // 使用 ValueNotifier 替代 setState，减少 WebView 页面重建
-  final ValueNotifier<bool> _loadingNotifier = ValueNotifier<bool>(true);
-
   // 入口配置
-  final List<Map<String, dynamic>> _entries = const [
+  final List<Map<String, dynamic>> _entries = [
     {
       'id': 'user',
       'name': '用户端',
@@ -74,29 +68,125 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
   @override
   void initState() {
     super.initState();
+    _initWebView();
     _loadServerIp();
   }
 
-  @override
-  void dispose() {
-    _ipController.dispose();
-    _loadingNotifier.dispose();
-    super.dispose();
+  void _initWebView() {
+    // 创建平台特定的参数
+    late final PlatformWebViewControllerCreationParams params;
+    if (WebViewPlatform.instance is WebKitWebViewPlatform) {
+      params = WebKitWebViewControllerCreationParams(
+        allowsInlineMediaPlayback: true,
+        mediaTypesRequiringUserAction: const <PlaybackMediaTypes>{},
+      );
+    } else {
+      params = const PlatformWebViewControllerCreationParams();
+    }
+
+    _webViewController = WebViewController.fromPlatformCreationParams(params)
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (String url) {
+            setState(() {
+              _isLoading = true;
+            });
+          },
+          onPageFinished: (String url) {
+            setState(() {
+              _isLoading = false;
+            });
+          },
+          onWebResourceError: (WebResourceError error) {
+            debugPrint('WebView 错误: ${error.errorCode} - ${error.description}');
+            setState(() {
+              _isLoading = false;
+            });
+          },
+        ),
+      )
+      ..setUserAgent('Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36');
+
+    // Android 特定设置：确保使用应用的网络栈（包括 VPN）
+    if (_webViewController.platform is AndroidWebViewController) {
+      AndroidWebViewController.enableDebugging(true);
+      (_webViewController.platform as AndroidWebViewController)
+          .setMediaPlaybackRequiresUserGesture(false);
+      
+      // 配置文件上传支持
+      (_webViewController.platform as AndroidWebViewController)
+          .setOnShowFileSelector((FileSelectorParams params) async {
+        try {
+          // 根据 acceptTypes 决定文件类型
+          FileType fileType = FileType.any;
+          List<String>? allowedExtensions;
+          final acceptTypes = params.acceptTypes;
+          
+          if (acceptTypes.isNotEmpty) {
+            // 检查是否是图片
+            if (acceptTypes.any((type) => 
+                type.contains('image') || type.contains('jpg') || type.contains('png'))) {
+              fileType = FileType.image;
+            } 
+            // 检查是否是 Python 文件
+            else if (acceptTypes.any((type) => 
+                type.contains('python') || type.contains('.py'))) {
+              fileType = FileType.custom;
+              allowedExtensions = ['py'];
+            }
+          }
+          
+          // 使用 FilePicker 选择文件
+          final result = await FilePicker.platform.pickFiles(
+            type: fileType,
+            allowedExtensions: allowedExtensions,
+            allowMultiple: params.mode == FileSelectorMode.openMultiple,
+            // 关键：使用 withData: true 获取文件内容
+            withData: false,
+            withReadStream: false,
+          );
+          
+          // 返回 Content URI 列表
+          if (result != null && result.files.isNotEmpty) {
+            final List<String> uris = [];
+            for (final file in result.files) {
+              if (file.path != null) {
+                // 将本地路径转换为 Content URI
+                final contentUri = await _getContentUri(file.path!, file.name);
+                if (contentUri != null) {
+                  uris.add(contentUri);
+                }
+              }
+            }
+            return uris;
+          }
+          return [];
+        } catch (e) {
+          debugPrint('文件选择错误: $e');
+          return [];
+        }
+      });
+    }
   }
 
-  Future<void> _loadServerIp() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _serverIp = prefs.getString(_serverIpKey) ?? '127.0.0.1';
-    });
-  }
-
-  Future<void> _saveServerIp(String ip) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_serverIpKey, ip);
-    setState(() {
-      _serverIp = ip;
-    });
+  /// 将本地文件路径转换为 Content URI
+  /// 这是 Android WebView 文件上传必需的格式
+  Future<String?> _getContentUri(String filePath, String fileName) async {
+    try {
+      // 使用 MethodChannel 调用原生代码获取 Content URI
+      const platform = MethodChannel('top.wherewego.vnt/filepicker');
+      final String? contentUri = await platform.invokeMethod('getContentUri', {
+        'filePath': filePath,
+        'fileName': fileName,
+      });
+      return contentUri;
+    } catch (e) {
+      debugPrint('获取 Content URI 失败: $e');
+      // 如果原生方法失败，尝试使用 file:// 协议作为后备
+      // 注意：这可能不适用于所有 Android 版本
+      return 'file://$filePath';
+    }
   }
 
   // 上次返回时间（用于双重返回逻辑）
@@ -108,63 +198,252 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     _closeWebView();
   }
 
-  // 处理物理返回键 - 与 HBuilder_app 一致的双重返回逻辑
+  // 处理物理返回键 - 与 HBuilder_app 一致：双重返回逻辑
   Future<bool> _handlePhysicalBackButton() async {
-    if (_webViewController != null) {
-      // 先尝试 WebView 返回
-      final canGoBack = await _webViewController!.canGoBack();
-      if (canGoBack) {
-        await _webViewController!.goBack();
-        return false; // 不退出
-      }
-    }
-    
-    // WebView 无法返回，使用双重返回逻辑
     final now = DateTime.now().millisecondsSinceEpoch;
+    final adminUrl = 'http://$_serverIp/admin/dashboard.html';
+
+    // 第一次按返回键（1.5秒内）
     if (_lastBackTime == null || now - _lastBackTime! > _backInterval) {
       _lastBackTime = now;
-      // 显示提示
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('再按一次返回键退出'),
-            duration: Duration(milliseconds: 1500),
-          ),
-        );
+
+      try {
+        // 获取当前 URL
+        final currentUrl = await _webViewController.currentUrl() ?? '';
+
+        // 检查当前是否在 AsynPost 或 QL 页面
+        if (currentUrl.contains('/asyn_post.html') ||
+            currentUrl.contains('/ql_scheduler.html')) {
+          // 直接跳转到后台首页
+          await _webViewController.loadRequest(Uri.parse(adminUrl));
+          _showToast('已返回后台');
+        } else {
+          // 尝试历史记录返回
+          if (await _webViewController.canGoBack()) {
+            await _webViewController.goBack();
+            _showToast('再按一次返回首页');
+          } else {
+            // 没有历史记录，关闭 WebView 回到入口页面
+            _closeWebView();
+            return false; // 返回 false 阻止页面退出，只是切换显示状态
+          }
+        }
+      } catch (e) {
+        // 出错时直接跳转到后台首页
+        await _webViewController.loadRequest(Uri.parse(adminUrl));
+        _showToast('已返回后台');
       }
-      return false; // 不退出
+
+      return false; // 不退出页面
+    } else {
+      // 第二次按返回键（1.5秒内）：关闭 WebView 回到入口页面
+      _lastBackTime = null;
+      _closeWebView();
+      return false; // 返回 false 阻止页面退出，只是切换显示状态
     }
-    
-    // 第二次按返回键（1.5秒内）：关闭 WebView 回到入口页面
-    _closeWebView();
-    return false; // 不退出页面，只是关闭 WebView
+  }
+
+  // 显示提示（类似 HBuilder_app 的 showGestureHint）
+  void _showToast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(milliseconds: 1500),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.black87,
+      ),
+    );
+  }
+
+  Future<void> _loadServerIp() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _serverIp = prefs.getString(_serverIpKey) ?? '127.0.0.1';
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _saveServerIp(String ip) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_serverIpKey, ip);
+    setState(() {
+      _serverIp = ip;
+    });
+  }
+
+  String _buildUrl(String path) {
+    return 'http://$_serverIp$path';
+  }
+
+  void _openEntry(Map<String, dynamic> entry) {
+    final url = _buildUrl(entry['path']);
+    setState(() {
+      _currentUrl = url;
+      _currentTitle = entry['name'];
+      _showWebView = true;
+    });
+    _webViewController.loadRequest(Uri.parse(url));
   }
 
   void _closeWebView() {
     setState(() {
       _showWebView = false;
       _currentUrl = '';
-      _currentTitle = '';
     });
-    _webViewController = null;
   }
 
-  void _openEntry(String path, String title) {
-    final url = 'http://$_serverIp:8080$path';
-    setState(() {
-      _currentUrl = url;
-      _currentTitle = title;
-      _showWebView = true;
-    });
+  /// 重置页面状态 - 当点击底部导航栏内网按钮时调用
+  void resetToEntryPage() {
+    if (_showWebView) {
+      _closeWebView();
+    }
   }
 
   void _refreshPage() {
-    _webViewController?.reload();
+    _webViewController.reload();
   }
 
-  // 重置到入口页面（供外部调用）
-  void resetToEntryPage() {
-    _closeWebView();
+  void _showConfigDialog() {
+    _ipController.text = _serverIp;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? AppTheme.darkCardBackground
+            : AppTheme.lightCardBackground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(context.cardRadius),
+        ),
+        title: Text(
+          '服务器配置',
+          style: TextStyle(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppTheme.darkTextPrimary
+                : AppTheme.lightTextPrimary,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: EdgeInsets.all(context.spacingSmall),
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white.withOpacity(0.05)
+                    : Colors.black.withOpacity(0.03),
+                borderRadius: BorderRadius.circular(context.cardRadius),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    '当前: ',
+                    style: TextStyle(
+                      fontSize: context.fontSmall,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      _serverIp,
+                      style: TextStyle(
+                        fontSize: context.fontSmall,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.darkTextPrimary
+                            : AppTheme.lightTextPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: context.spacingMedium),
+            TextField(
+              controller: _ipController,
+              decoration: InputDecoration(
+                labelText: '服务器地址',
+                hintText: '例如: 127.0.0.1 或 192.168.1.100',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(context.cardRadius),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(context.cardRadius),
+                  borderSide: BorderSide(
+                    color: Theme.of(context).primaryColor,
+                    width: 2,
+                  ),
+                ),
+              ),
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppTheme.darkTextPrimary
+                    : AppTheme.lightTextPrimary,
+              ),
+            ),
+            SizedBox(height: context.spacingSmall),
+            Text(
+              '请输入IP地址或域名，不需要添加 http:// 前缀',
+              style: TextStyle(
+                fontSize: context.fontSmall,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppTheme.darkTextSecondary
+                    : AppTheme.lightTextSecondary,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              '取消',
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppTheme.darkTextSecondary
+                    : AppTheme.lightTextSecondary,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              String ip = _ipController.text.trim();
+              
+              // 移除可能存在的 http:// 或 https:// 前缀
+              ip = ip.replaceAll(RegExp(r'^https?://'), '');
+              
+              // 移除可能存在的路径部分
+              ip = ip.split('/')[0];
+              
+              if (ip.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('请输入服务器地址')),
+                );
+                return;
+              }
+              
+              await _saveServerIp(ip);
+              Navigator.pop(context);
+              
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('服务器配置已保存')),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(context.buttonRadius),
+              ),
+            ),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -173,21 +452,25 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     final primaryColor = Theme.of(context).primaryColor;
 
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 300),
       transitionBuilder: (Widget child, Animation<double> animation) {
+        // WebView 页面从右侧滑入，主页面从左侧滑入
         final bool isWebView = child is WillPopScope;
-
+        
         final offsetAnimation = Tween<Offset>(
           begin: isWebView ? const Offset(1.0, 0.0) : const Offset(-1.0, 0.0),
           end: Offset.zero,
         ).animate(CurvedAnimation(
           parent: animation,
-          curve: Curves.easeInOut,
+          curve: Curves.easeInOutCubic,
         ));
-
+        
         return SlideTransition(
           position: offsetAnimation,
-          child: child,
+          child: FadeTransition(
+            opacity: animation,
+            child: child,
+          ),
         );
       },
       child: _showWebView
@@ -200,31 +483,30 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     return Scaffold(
       key: const ValueKey('mainPage'),
       backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
-      appBar: AppBar(
-        backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
-        elevation: 0,
-        title: Text(
-          '内网访问',
-          style: TextStyle(
-            color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-            fontSize: context.fontMedium,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(context.spacingMedium),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 页面头部
+              _buildHeader(isDark, primaryColor),
+              SizedBox(height: context.spacingLarge),
+
+              // 服务器信息卡片
+              _buildServerInfoCard(isDark, primaryColor),
+              SizedBox(height: context.spacingLarge),
+
+              // 入口选择
+              _buildSectionTitle(isDark, '访问入口'),
+              SizedBox(height: context.spacingSmall),
+              _buildEntryGrid(isDark, primaryColor),
+              SizedBox(height: context.spacingLarge),
+
+              // 说明
+              _buildTipsCard(isDark),
+            ],
           ),
-        ),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: ResponsiveUtils.padding(context, all: 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(isDark, primaryColor),
-            SizedBox(height: context.spacingLarge),
-            _buildServerConfig(isDark, primaryColor),
-            SizedBox(height: context.spacingLarge),
-            _buildEntriesGrid(isDark, primaryColor),
-            SizedBox(height: context.spacingLarge),
-            _buildTipsCard(isDark),
-          ],
         ),
       ),
     );
@@ -233,7 +515,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
   Widget _buildWebViewPage(bool isDark, Color primaryColor) {
     return WillPopScope(
       key: const ValueKey('webViewPage'),
-      onWillPop: _handlePhysicalBackButton,
+      onWillPop: _handlePhysicalBackButton, // 使用与 HBuilder_app 一致的双重返回逻辑
       child: Scaffold(
         backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
         appBar: AppBar(
@@ -265,74 +547,28 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
         ),
         body: Stack(
           children: [
-            // InAppWebView - 性能更好的 WebView
-            InAppWebView(
-              initialUrlRequest: URLRequest(url: Uri.parse(_currentUrl)),
-              initialOptions: InAppWebViewGroupOptions(
-                crossPlatform: InAppWebViewOptions(
-                  // JavaScript 支持
-                  javaScriptEnabled: true,
-                  // 透明背景
-                  transparentBackground: true,
-                  // 用户代理
-                  userAgent: 'Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
-                ),
-                android: AndroidInAppWebViewOptions(
-                  // 使用 Hybrid Composition 提升性能
-                  useHybridComposition: true,
+            WebViewWidget(controller: _webViewController),
+            if (_isLoading)
+              Container(
+                color: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(
+                        color: primaryColor,
+                      ),
+                      SizedBox(height: context.spacingMedium),
+                      Text(
+                        '正在连接服务器...',
+                        style: TextStyle(
+                          color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              onWebViewCreated: (controller) {
-                _webViewController = controller;
-              },
-              onLoadStart: (controller, url) {
-                _loadingNotifier.value = true;
-              },
-              onLoadStop: (controller, url) {
-                _loadingNotifier.value = false;
-              },
-              onLoadError: (controller, url, code, message) {
-                debugPrint('WebView 错误: $code - $message');
-                _loadingNotifier.value = false;
-              },
-              onProgressChanged: (controller, progress) {
-                if (progress == 100) {
-                  _loadingNotifier.value = false;
-                }
-              },
-            ),
-            // 加载指示器
-            ValueListenableBuilder<bool>(
-              valueListenable: _loadingNotifier,
-              builder: (context, isLoading, child) {
-                return isLoading
-                    ? Container(
-                        color: isDark
-                            ? AppTheme.darkBackground
-                            : AppTheme.lightBackground,
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              CircularProgressIndicator(
-                                color: primaryColor,
-                              ),
-                              SizedBox(height: context.spacingMedium),
-                              Text(
-                                '正在连接服务器...',
-                                style: TextStyle(
-                                  color: isDark
-                                      ? AppTheme.darkTextSecondary
-                                      : AppTheme.lightTextSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    : const SizedBox.shrink();
-              },
-            ),
           ],
         ),
       ),
@@ -365,17 +601,17 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '内网服务',
+                '内网访问',
                 style: TextStyle(
-                  fontSize: context.fontLarge,
+                  fontSize: context.fontXLarge,
                   fontWeight: FontWeight.bold,
                   color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
                 ),
               ),
               Text(
-                '访问本地服务器功能',
+                '访问内网服务',
                 style: TextStyle(
-                  fontSize: context.fontSmall,
+                  fontSize: context.fontBody,
                   color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
                 ),
               ),
@@ -386,219 +622,185 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     );
   }
 
-  Widget _buildServerConfig(bool isDark, Color primaryColor) {
+  Widget _buildServerInfoCard(bool isDark, Color primaryColor) {
     return Container(
-      padding: ResponsiveUtils.padding(context, all: 20),
       decoration: BoxDecoration(
         color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
         borderRadius: BorderRadius.circular(context.cardRadius),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.08),
             blurRadius: 10,
-            offset: const Offset(0, 2),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.settings,
-                size: context.iconMedium,
-                color: primaryColor,
-              ),
-              SizedBox(width: context.spacingSmall),
-              Text(
-                '服务器配置',
-                style: TextStyle(
-                  fontSize: context.fontMedium,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: context.spacingMedium),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _ipController..text = _serverIp,
-                  style: TextStyle(
-                    fontSize: context.fontMedium,
-                    color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-                  ),
-                  decoration: InputDecoration(
-                    labelText: '服务器 IP',
-                    hintText: '例如: 192.168.1.100',
-                    labelStyle: TextStyle(
-                      fontSize: context.fontSmall,
-                      color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-                    ),
-                    hintStyle: TextStyle(
-                      fontSize: context.fontSmall,
-                      color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-                    ),
-                    prefixIcon: Icon(
-                      Icons.computer,
-                      color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(context.cardRadius),
-                      borderSide: BorderSide(
-                        color: isDark ? Colors.white24 : Colors.black12,
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(context.cardRadius),
-                      borderSide: BorderSide(
-                        color: isDark ? Colors.white24 : Colors.black12,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(context.cardRadius),
-                      borderSide: BorderSide(color: primaryColor),
-                    ),
-                    filled: true,
-                    fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-                  ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    _serverIp = value;
-                  },
-                ),
-              ),
-              SizedBox(width: context.spacingMedium),
-              ElevatedButton(
-                onPressed: () {
-                  _saveServerIp(_ipController.text);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('服务器地址已保存: ${_ipController.text}'),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: ResponsiveUtils.padding(context, horizontal: 20, vertical: 16),
-                  shape: RoundedRectangleBorder(
+      child: Padding(
+        padding: ResponsiveUtils.padding(context, all: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: context.listItemIconContainerSize,
+                  height: context.listItemIconContainerSize,
+                  decoration: BoxDecoration(
+                    color: primaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(context.cardRadius),
                   ),
+                  child: Icon(
+                    Icons.dns_outlined,
+                    color: primaryColor,
+                    size: context.iconSmall,
+                  ),
                 ),
-                child: Text(
-                  '保存',
-                  style: TextStyle(fontSize: context.fontMedium),
+                SizedBox(width: context.spacingMedium),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '服务器地址',
+                        style: TextStyle(
+                          fontSize: context.fontMedium,
+                          fontWeight: FontWeight.w500,
+                          color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                        ),
+                      ),
+                      Text(
+                        _serverIp,
+                        style: TextStyle(
+                          fontSize: context.fontBody,
+                          color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+                IconButton(
+                  icon: Icon(
+                    Icons.edit,
+                    color: primaryColor,
+                    size: context.iconSmall,
+                  ),
+                  onPressed: _showConfigDialog,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildEntriesGrid(bool isDark, Color primaryColor) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '功能入口',
-          style: TextStyle(
-            fontSize: context.fontMedium,
-            fontWeight: FontWeight.w600,
-            color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-          ),
+  Widget _buildSectionTitle(bool isDark, String title) {
+    final primaryColor = Theme.of(context).primaryColor;
+    return Padding(
+      padding: EdgeInsets.only(left: context.spacingXSmall / 2),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: context.fontBody,
+          fontWeight: FontWeight.w600,
+          color: primaryColor,
         ),
-        SizedBox(height: context.spacingMedium),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: ResponsiveUtils.isTablet(context) ? 3 : 2,
-            crossAxisSpacing: context.spacingMedium,
-            mainAxisSpacing: context.spacingMedium,
-            childAspectRatio: 1.3,
-          ),
-          itemCount: _entries.length,
-          itemBuilder: (context, index) {
-            final entry = _entries[index];
-            return _buildEntryCard(
-              entry['id'] as String,
-              entry['name'] as String,
-              entry['desc'] as String,
-              entry['icon'] as IconData,
-              entry['path'] as String,
-              isDark,
-              primaryColor,
-            );
-          },
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildEntryCard(
-    String id,
-    String name,
-    String desc,
-    IconData icon,
-    String path,
-    bool isDark,
-    Color primaryColor,
-  ) {
-    return GestureDetector(
-      onTap: () => _openEntry(path, name),
-      child: Container(
-        padding: ResponsiveUtils.padding(context, all: 16),
-        decoration: BoxDecoration(
-          color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+  Widget _buildEntryGrid(bool isDark, Color primaryColor) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: context.spacingSmall,
+        mainAxisSpacing: context.spacingSmall,
+        childAspectRatio: 1.2,
+      ),
+      itemCount: _entries.length,
+      itemBuilder: (context, index) {
+        final entry = _entries[index];
+        return _buildEntryCard(entry, isDark, primaryColor);
+      },
+    );
+  }
+
+  Widget _buildEntryCard(Map<String, dynamic> entry, bool isDark, Color primaryColor) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 400 + (_entries.indexOf(entry) * 100)),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Transform.translate(
+          offset: Offset(0, (1 - value) * 20),
+          child: Opacity(
+            opacity: value,
+            child: child,
+          ),
+        );
+      },
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _openEntry(entry),
           borderRadius: BorderRadius.circular(context.cardRadius),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
+          splashColor: primaryColor.withOpacity(0.1),
+          highlightColor: primaryColor.withOpacity(0.05),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            decoration: BoxDecoration(
+              color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+              borderRadius: BorderRadius.circular(context.cardRadius),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.08),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: context.iconXLarge,
-              height: context.iconXLarge,
-              decoration: BoxDecoration(
-                color: primaryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(context.cardRadius),
-              ),
-              child: Icon(
-                icon,
-                color: primaryColor,
-                size: context.iconLarge,
-              ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Hero(
+                  tag: 'entry_icon_${entry['id']}',
+                  child: Container(
+                    width: context.iconXLarge,
+                    height: context.iconXLarge,
+                    decoration: BoxDecoration(
+                      color: primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(context.cardRadius),
+                    ),
+                    child: Icon(
+                      entry['icon'] as IconData,
+                      color: primaryColor,
+                      size: context.iconLarge,
+                    ),
+                  ),
+                ),
+                SizedBox(height: context.spacingSmall),
+                Text(
+                  entry['name'] as String,
+                  style: TextStyle(
+                    fontSize: context.fontMedium,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                  ),
+                ),
+                SizedBox(height: context.spacingXSmall / 2),
+                Text(
+                  entry['desc'] as String,
+                  style: TextStyle(
+                    fontSize: context.fontSmall,
+                    color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                  ),
+                ),
+              ],
             ),
-            SizedBox(height: context.spacingSmall),
-            Text(
-              name,
-              style: TextStyle(
-                fontSize: context.fontMedium,
-                fontWeight: FontWeight.w600,
-                color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-              ),
-            ),
-            Text(
-              desc,
-              style: TextStyle(
-                fontSize: context.fontSmall,
-                color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -644,5 +846,11 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _ipController.dispose();
+    super.dispose();
   }
 }
