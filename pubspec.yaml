@@ -31,7 +31,8 @@ dependencies:
   share_plus: ^7.2.2
   flex_color_picker: ^3.3.0
   # 使用 flutter_inappwebview 替代 webview_flutter，性能更好
-  flutter_inappwebview: ^6.0.0
+  # 使用 5.8.0 版本兼容 Flutter 3.22.0
+  flutter_inappwebview: ^5.8.0
 
 dev_dependencies:
   flutter_test:

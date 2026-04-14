@@ -262,30 +262,32 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
           children: [
             // InAppWebView - 性能更好的 WebView
             InAppWebView(
-              initialUrlRequest: URLRequest(url: WebUri(_currentUrl)),
-              initialSettings: InAppWebViewSettings(
-                // JavaScript 支持
-                javaScriptEnabled: true,
-                // 允许混合内容（HTTP/HTTPS）
-                mixedContentMode: MixedContentMode.compatibilityMode,
-                // 媒体播放不需要用户手势
-                mediaPlaybackRequiresUserGesture: false,
-                // 缓存模式
-                cacheMode: CacheMode.LOAD_DEFAULT,
-                // 数据库支持
-                databaseEnabled: true,
-                // DOM 存储支持
-                domStorageEnabled: true,
-                // 支持缩放
-                supportZoom: true,
-                // 显示缩放控件
-                builtInZoomControls: true,
-                // 硬件加速
-                hardwareAcceleration: true,
-                // 透明背景
-                transparentBackground: true,
-                // 用户代理
-                userAgent: 'Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+              initialUrlRequest: URLRequest(url: Uri.parse(_currentUrl)),
+              initialOptions: InAppWebViewGroupOptions(
+                crossPlatform: InAppWebViewOptions(
+                  // JavaScript 支持
+                  javaScriptEnabled: true,
+                  // 透明背景
+                  transparentBackground: true,
+                  // 用户代理
+                  userAgent: 'Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+                ),
+                android: AndroidInAppWebViewOptions(
+                  // 允许混合内容（HTTP/HTTPS）
+                  mixedContentMode: AndroidMixedContentMode.COMPATIBILITY_MODE,
+                  // 媒体播放不需要用户手势
+                  mediaPlaybackRequiresUserGesture: false,
+                  // 数据库支持
+                  databaseEnabled: true,
+                  // DOM 存储支持
+                  domStorageEnabled: true,
+                  // 支持缩放
+                  supportZoom: true,
+                  // 显示缩放控件
+                  builtInZoomControls: true,
+                  // 硬件加速
+                  hardwareAcceleration: true,
+                ),
               ),
               onWebViewCreated: (controller) {
                 _webViewController = controller;
