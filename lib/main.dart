@@ -121,21 +121,8 @@ class _VntAppState extends State<VntApp> {
           Locale('en', ''),
         ],
         locale: const Locale('zh', 'CN'),
-        // 优化性能：使用简单页面切换动画，减少键盘弹出时的掉帧
-        theme: AppTheme.createLightTheme(_customThemeColor).copyWith(
-          pageTransitionsTheme: const PageTransitionsTheme(
-            builders: <TargetPlatform, PageTransitionsBuilder>{
-              TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-            },
-          ),
-        ),
-        darkTheme: AppTheme.createDarkTheme(_customThemeColor).copyWith(
-          pageTransitionsTheme: const PageTransitionsTheme(
-            builders: <TargetPlatform, PageTransitionsBuilder>{
-              TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-            },
-          ),
-        ),
+        theme: AppTheme.createLightTheme(_customThemeColor),
+        darkTheme: AppTheme.createDarkTheme(_customThemeColor),
         themeMode: _themeMode,
         home: PopScope(
           canPop: false,
