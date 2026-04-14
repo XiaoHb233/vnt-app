@@ -111,12 +111,16 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     // Android 特定设置：确保使用应用的网络栈（包括 VPN）
     if (_webViewController.platform is AndroidWebViewController) {
       AndroidWebViewController.enableDebugging(true);
-      (_webViewController.platform as AndroidWebViewController)
-          .setMediaPlaybackRequiresUserGesture(false);
-      
+      final androidController = _webViewController.platform as AndroidWebViewController;
+
+      // 禁用媒体播放需要用户手势
+      androidController.setMediaPlaybackRequiresUserGesture(false);
+
+      // 设置硬件加速渲染模式，优化软键盘弹出时的性能
+      androidController.setLayerType(AndroidWebViewLayerType.hardware);
+
       // 配置文件上传支持
-      (_webViewController.platform as AndroidWebViewController)
-          .setOnShowFileSelector((FileSelectorParams params) async {
+      androidController.setOnShowFileSelector((FileSelectorParams params) async {
         try {
           // 根据 acceptTypes 决定文件类型
           FileType fileType = FileType.any;
@@ -518,6 +522,8 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
       onWillPop: _handlePhysicalBackButton, // 使用与 HBuilder_app 一致的双重返回逻辑
       child: Scaffold(
         backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
+        // 关键：设置为 false 避免软键盘弹出时页面重绘导致的掉帧
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
           backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
           elevation: 0,
@@ -545,31 +551,35 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
             ),
           ],
         ),
-        body: Stack(
-          children: [
-            WebViewWidget(controller: _webViewController),
-            if (_isLoading)
-              Container(
-                color: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(
-                        color: primaryColor,
-                      ),
-                      SizedBox(height: context.spacingMedium),
-                      Text(
-                        '正在连接服务器...',
-                        style: TextStyle(
-                          color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+        body: SafeArea(
+          // 关键：使用 SafeArea 的 bottom: false 避免软键盘弹出时的布局抖动
+          bottom: false,
+          child: Stack(
+            children: [
+              WebViewWidget(controller: _webViewController),
+              if (_isLoading)
+                Container(
+                  color: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          color: primaryColor,
                         ),
-                      ),
-                    ],
+                        SizedBox(height: context.spacingMedium),
+                        Text(
+                          '正在连接服务器...',
+                          style: TextStyle(
+                            color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
