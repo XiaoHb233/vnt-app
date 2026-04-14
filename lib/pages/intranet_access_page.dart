@@ -32,6 +32,8 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
   
   late WebViewController _webViewController;
   final TextEditingController _ipController = TextEditingController();
+  // 缓存 WebViewWidget，避免重复创建
+  Widget? _cachedWebViewWidget;
 
   // 入口配置
   final List<Map<String, dynamic>> _entries = [
@@ -474,23 +476,40 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
       child: _showWebView
           ? _buildWebViewPage(isDark, primaryColor)
           : _buildMainPage(isDark, primaryColor),
+      // 关键：为 AnimatedSwitcher 的子元素设置不同的 key，确保正确识别页面切换
+      layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+        return Stack(
+          fit: StackFit.expand,
+          children: <Widget>[
+            ...previousChildren,
+            if (currentChild != null) currentChild,
+          ],
+        );
+      },
     );
   }
 
   /// 构建 WebViewWidget，Android 平台使用 Hybrid Composition 模式优化键盘体验
   Widget _buildWebViewWidget() {
+    // 使用缓存的 WebViewWidget，避免重复创建
+    if (_cachedWebViewWidget != null) {
+      return _cachedWebViewWidget!;
+    }
+
     // Android 平台使用 Hybrid Composition 模式，解决软键盘弹出时的掉帧问题
     if (WebViewPlatform.instance is AndroidWebViewPlatform) {
-      return WebViewWidget.fromPlatformCreationParams(
+      _cachedWebViewWidget = WebViewWidget.fromPlatformCreationParams(
         params: AndroidWebViewWidgetCreationParams(
           controller: _webViewController.platform,
           // 关键：启用 Hybrid Composition 模式，提供更好的键盘支持
           displayWithHybridComposition: true,
         ),
       );
+    } else {
+      // iOS 平台使用默认实现
+      _cachedWebViewWidget = WebViewWidget(controller: _webViewController);
     }
-    // iOS 平台使用默认实现
-    return WebViewWidget(controller: _webViewController);
+    return _cachedWebViewWidget!;
   }
 
   Widget _buildMainPage(bool isDark, Color primaryColor) {
