@@ -201,6 +201,8 @@ impl VntApi {
             vnt_config.allow_wire_guard,
             vnt_config.local_dev,
             vnt_config.disable_relay,
+            // 上游 vnt 新增 hook 参数，当前 UI 未暴露，先传 None 保持兼容
+            None,
         )?;
         Ok(Self {
             vnt: Vnt::new(conf, call)?,

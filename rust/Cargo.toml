@@ -10,7 +10,8 @@ crate-type = ["staticlib", "cdylib"]
 
 serde = { version = "1.0", features = ["derive"] }
 flutter_rust_bridge = "2.1.0"
-vnt = { git = "https://github.com/lmq8267/vnt-Redir.git", branch = "main", features = ["ring-cipher", "wss"] }
+# 固定到当前主分支 commit，避免上游后续破坏性变更再次导致编译失败
+vnt = { git = "https://github.com/lmq8267/vnt-Redir.git", rev = "cce3e3a7de0bd9b3c832fabff847637e0f9c0483", features = ["ring-cipher", "wss"] }
 anyhow = "1.0.82"
 tokio = { version = "1.37.0", features = ["full"] }
 

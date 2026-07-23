@@ -35,7 +35,11 @@ public class IntranetWebActivity extends Activity {
     public static final String EXTRA_URL = "url";
     public static final String EXTRA_TITLE = "title";
     public static final String EXTRA_SERVER_IP = "server_ip";
-    
+    public static final String EXTRA_USER_PATH = "user_path";
+    public static final String EXTRA_ADMIN_PATH = "admin_path";
+    public static final String EXTRA_ASYN_PATH = "asyn_path";
+    public static final String EXTRA_QL_PATH = "ql_path";
+
     // 返回结果 - 告诉 Flutter 要切换到哪个页面
     public static final String RESULT_NAVIGATE_TO = "navigate_to";
     public static final int RESULT_DASHBOARD = 0;
@@ -48,6 +52,10 @@ public class IntranetWebActivity extends Activity {
     private WebView webView;
     private ProgressBar progressBar;
     private String serverIp;
+    private String userPath;
+    private String adminPath;
+    private String asynPath;
+    private String qlPath;
     private String currentUrl;
     private long lastBackTime;
     private ValueCallback<Uri[]> filePathCallback;
@@ -64,6 +72,14 @@ public class IntranetWebActivity extends Activity {
         String url = intent.getStringExtra(EXTRA_URL);
         String title = intent.getStringExtra(EXTRA_TITLE);
         serverIp = intent.getStringExtra(EXTRA_SERVER_IP);
+        userPath = intent.getStringExtra(EXTRA_USER_PATH);
+        adminPath = intent.getStringExtra(EXTRA_ADMIN_PATH);
+        asynPath = intent.getStringExtra(EXTRA_ASYN_PATH);
+        qlPath = intent.getStringExtra(EXTRA_QL_PATH);
+        if (userPath == null) userPath = "/";
+        if (adminPath == null) adminPath = "/admin";
+        if (asynPath == null) asynPath = "/admin/asyn_post.html";
+        if (qlPath == null) qlPath = "/admin/ql_scheduler.html";
         currentUrl = url;
 
         // 初始化底部导航栏
@@ -94,7 +110,7 @@ public class IntranetWebActivity extends Activity {
         // 内网 - 刷新当前页面或返回入口
         findViewById(R.id.navIntranet).setOnClickListener(v -> {
             // 如果当前不在入口页，加载入口页
-            String entryUrl = "http://" + serverIp + "/index.html";
+            String entryUrl = "http://" + serverIp + userPath;
             if (currentUrl != null && !currentUrl.equals(entryUrl)) {
                 webView.loadUrl(entryUrl);
             }
@@ -216,13 +232,13 @@ public class IntranetWebActivity extends Activity {
 
     private void handleBack() {
         long now = System.currentTimeMillis();
-        String adminUrl = "http://" + serverIp + "/admin/dashboard.html";
+        String adminUrl = "http://" + serverIp + adminPath;
 
         if (now - lastBackTime > BACK_INTERVAL) {
             lastBackTime = now;
 
-            if (currentUrl != null && (currentUrl.contains("/asyn_post.html") ||
-                    currentUrl.contains("/ql_scheduler.html"))) {
+            if (currentUrl != null && (currentUrl.contains(asynPath) ||
+                    currentUrl.contains(qlPath))) {
                 webView.loadUrl(adminUrl);
                 showToast("已返回后台");
             } else if (webView.canGoBack()) {

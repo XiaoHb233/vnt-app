@@ -14,16 +14,27 @@ class IntranetAccessPage extends StatefulWidget {
 
 class IntranetAccessPageState extends State<IntranetAccessPage> {
   static const String _serverIpKey = 'intranet_server_ip';
+  static const String _userPathKey = 'intranet_user_path';
+  static const String _adminPathKey = 'intranet_admin_path';
+  static const String _asynPathKey = 'intranet_asyn_path';
+  static const String _qlPathKey = 'intranet_ql_path';
   static const MethodChannel _channel = MethodChannel('top.wherewego.vnt/webview');
-  
+
   String _serverIp = '127.0.0.1';
+  final Map<String, String> _entryPaths = {
+    'user': '/',
+    'admin': '/admin',
+    'asyn': '/admin/asyn_post.html',
+    'ql': '/admin/ql_scheduler.html',
+  };
   final _ipController = TextEditingController();
+  final Map<String, TextEditingController> _pathControllers = {};
 
   final _entries = const [
-    {'id': 'user', 'name': '用户端', 'desc': '查询服务', 'icon': Icons.person_outline, 'path': '/index.html'},
-    {'id': 'admin', 'name': '管理员', 'desc': '后台管理', 'icon': Icons.admin_panel_settings_outlined, 'path': '/admin/dashboard.html'},
-    {'id': 'asyn', 'name': '异步定时', 'desc': '定时任务', 'icon': Icons.timer_outlined, 'path': '/admin/asyn_post.html'},
-    {'id': 'ql', 'name': 'QL定时', 'desc': '青龙面板', 'icon': Icons.schedule_outlined, 'path': '/admin/ql_scheduler.html'},
+    {'id': 'user', 'name': '用户端', 'desc': '查询服务', 'icon': Icons.person_outline},
+    {'id': 'admin', 'name': '管理员', 'desc': '后台管理', 'icon': Icons.admin_panel_settings_outlined},
+    {'id': 'asyn', 'name': '异步定时', 'desc': '定时任务', 'icon': Icons.timer_outlined},
+    {'id': 'ql', 'name': 'QL定时', 'desc': '青龙面板', 'icon': Icons.schedule_outlined},
   ];
 
   @override
@@ -34,20 +45,45 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
 
   Future<void> _loadServerIp() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() => _serverIp = prefs.getString(_serverIpKey) ?? '127.0.0.1');
+    setState(() {
+      _serverIp = prefs.getString(_serverIpKey) ?? '127.0.0.1';
+      _entryPaths['user'] = prefs.getString(_userPathKey) ?? '/';
+      _entryPaths['admin'] = prefs.getString(_adminPathKey) ?? '/admin';
+      _entryPaths['asyn'] = prefs.getString(_asynPathKey) ?? '/admin/asyn_post.html';
+      _entryPaths['ql'] = prefs.getString(_qlPathKey) ?? '/admin/ql_scheduler.html';
+    });
   }
 
-  Future<void> _saveServerIp(String ip) async {
+  Future<void> _saveConfig(String ip, Map<String, String> paths) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_serverIpKey, ip);
-    setState(() => _serverIp = ip);
+    await prefs.setString(_userPathKey, paths['user']!);
+    await prefs.setString(_adminPathKey, paths['admin']!);
+    await prefs.setString(_asynPathKey, paths['asyn']!);
+    await prefs.setString(_qlPathKey, paths['ql']!);
+    setState(() {
+      _serverIp = ip;
+      _entryPaths.addAll(paths);
+    });
+  }
+
+  /// 规范路径：保证以 / 开头，空字符串返回 /
+  String _normalizePath(String path) {
+    final trimmed = path.trim();
+    if (trimmed.isEmpty) return '/';
+    return trimmed.startsWith('/') ? trimmed : '/$trimmed';
   }
 
   void _openEntry(Map<String, dynamic> entry) {
+    final path = _normalizePath(_entryPaths[entry['id']] ?? '/');
     _channel.invokeMethod('openWebView', {
-      'url': 'http://$_serverIp${entry['path']}',
+      'url': 'http://$_serverIp$path',
       'title': entry['name'],
       'serverIp': _serverIp,
+      'userPath': _normalizePath(_entryPaths['user']!),
+      'adminPath': _normalizePath(_entryPaths['admin']!),
+      'asynPath': _normalizePath(_entryPaths['asyn']!),
+      'qlPath': _normalizePath(_entryPaths['ql']!),
     });
   }
 
@@ -59,36 +95,55 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
 
   void _showConfigDialog() {
     _ipController.text = _serverIp;
+    _pathControllers.clear();
+    for (final id in _entryPaths.keys) {
+      _pathControllers[id] = TextEditingController(text: _entryPaths[id]);
+    }
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(context.cardRadius)),
         title: Text('服务器配置', style: TextStyle(color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _ipController,
-              decoration: InputDecoration(
-                labelText: '服务器地址',
-                hintText: '例如: 127.0.0.1',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(context.cardRadius)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _ipController,
+                decoration: InputDecoration(
+                  labelText: '服务器地址',
+                  hintText: '例如: 127.0.0.1',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(context.cardRadius)),
+                ),
               ),
-            ),
-          ],
+              SizedBox(height: context.spacingMedium),
+              _buildPathField('user', '用户端路径', '例如: /', isDark),
+              SizedBox(height: context.spacingMedium),
+              _buildPathField('admin', '管理端路径', '例如: /admin', isDark),
+              SizedBox(height: context.spacingMedium),
+              _buildPathField('asyn', '异步定时路径', '例如: /admin/asyn_post.html', isDark),
+              SizedBox(height: context.spacingMedium),
+              _buildPathField('ql', 'QL定时路径', '例如: /admin/ql_scheduler.html', isDark),
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
           ElevatedButton(
             onPressed: () async {
               var ip = _ipController.text.trim().replaceAll(RegExp(r'^https?://'), '').split('/')[0];
-              if (ip.isNotEmpty) {
-                await _saveServerIp(ip);
-                if (mounted) Navigator.pop(context);
+              if (ip.isEmpty) {
+                return;
               }
+              final paths = <String, String>{};
+              for (final id in _entryPaths.keys) {
+                paths[id] = _normalizePath(_pathControllers[id]?.text ?? _entryPaths[id]!);
+              }
+              await _saveConfig(ip, paths);
+              if (mounted) Navigator.pop(context);
             },
             child: const Text('保存'),
           ),
@@ -96,6 +151,18 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
       ),
     );
   }
+
+  Widget _buildPathField(String id, String label, String hint, bool isDark) => TextField(
+    controller: _pathControllers[id],
+    decoration: InputDecoration(
+      labelText: label,
+      hintText: hint,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(context.cardRadius)),
+    ),
+    style: TextStyle(
+      color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -246,6 +313,10 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
   @override
   void dispose() {
     _ipController.dispose();
+    for (final controller in _pathControllers.values) {
+      controller.dispose();
+    }
+    _pathControllers.clear();
     super.dispose();
   }
 }
