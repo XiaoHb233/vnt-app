@@ -35,6 +35,7 @@ public class IntranetWebActivity extends Activity {
     public static final String EXTRA_URL = "url";
     public static final String EXTRA_TITLE = "title";
     public static final String EXTRA_SERVER_IP = "server_ip";
+    public static final String EXTRA_SERVER_PORT = "server_port";
     public static final String EXTRA_USER_PATH = "user_path";
     public static final String EXTRA_ADMIN_PATH = "admin_path";
     public static final String EXTRA_ASYN_PATH = "asyn_path";
@@ -52,6 +53,7 @@ public class IntranetWebActivity extends Activity {
     private WebView webView;
     private ProgressBar progressBar;
     private String serverIp;
+    private String serverPort;
     private String userPath;
     private String adminPath;
     private String asynPath;
@@ -72,10 +74,13 @@ public class IntranetWebActivity extends Activity {
         String url = intent.getStringExtra(EXTRA_URL);
         String title = intent.getStringExtra(EXTRA_TITLE);
         serverIp = intent.getStringExtra(EXTRA_SERVER_IP);
+        serverPort = intent.getStringExtra(EXTRA_SERVER_PORT);
         userPath = intent.getStringExtra(EXTRA_USER_PATH);
         adminPath = intent.getStringExtra(EXTRA_ADMIN_PATH);
         asynPath = intent.getStringExtra(EXTRA_ASYN_PATH);
         qlPath = intent.getStringExtra(EXTRA_QL_PATH);
+        if (serverIp == null) serverIp = "127.0.0.1";
+        if (serverPort == null || serverPort.isEmpty()) serverPort = "80";
         if (userPath == null) userPath = "/";
         if (adminPath == null) adminPath = "/admin";
         if (asynPath == null) asynPath = "/admin/asyn_post.html";
@@ -110,7 +115,7 @@ public class IntranetWebActivity extends Activity {
         // 内网 - 刷新当前页面或返回入口
         findViewById(R.id.navIntranet).setOnClickListener(v -> {
             // 如果当前不在入口页，加载入口页
-            String entryUrl = "http://" + serverIp + userPath;
+            String entryUrl = buildBaseUrl() + userPath;
             if (currentUrl != null && !currentUrl.equals(entryUrl)) {
                 webView.loadUrl(entryUrl);
             }
@@ -230,9 +235,19 @@ public class IntranetWebActivity extends Activity {
         return super.onKeyDown(keyCode, event);
     }
 
+    /**
+     * 构建基础 URL：80 端口时不显示端口号
+     */
+    private String buildBaseUrl() {
+        if ("80".equals(serverPort) || serverPort == null || serverPort.isEmpty()) {
+            return "http://" + serverIp;
+        }
+        return "http://" + serverIp + ":" + serverPort;
+    }
+
     private void handleBack() {
         long now = System.currentTimeMillis();
-        String adminUrl = "http://" + serverIp + adminPath;
+        String adminUrl = buildBaseUrl() + adminPath;
 
         if (now - lastBackTime > BACK_INTERVAL) {
             lastBackTime = now;

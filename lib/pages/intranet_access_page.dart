@@ -14,6 +14,7 @@ class IntranetAccessPage extends StatefulWidget {
 
 class IntranetAccessPageState extends State<IntranetAccessPage> {
   static const String _serverIpKey = 'intranet_server_ip';
+  static const String _serverPortKey = 'intranet_server_port';
   static const String _userPathKey = 'intranet_user_path';
   static const String _adminPathKey = 'intranet_admin_path';
   static const String _asynPathKey = 'intranet_asyn_path';
@@ -21,6 +22,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
   static const MethodChannel _channel = MethodChannel('top.wherewego.vnt/webview');
 
   String _serverIp = '127.0.0.1';
+  String _serverPort = '80';
   final Map<String, String> _entryPaths = {
     'user': '/',
     'admin': '/admin',
@@ -28,6 +30,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     'ql': '/admin/ql_scheduler.html',
   };
   final _ipController = TextEditingController();
+  final _portController = TextEditingController();
   final Map<String, TextEditingController> _pathControllers = {};
 
   final _entries = const [
@@ -47,6 +50,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _serverIp = prefs.getString(_serverIpKey) ?? '127.0.0.1';
+      _serverPort = prefs.getString(_serverPortKey) ?? '80';
       _entryPaths['user'] = prefs.getString(_userPathKey) ?? '/';
       _entryPaths['admin'] = prefs.getString(_adminPathKey) ?? '/admin';
       _entryPaths['asyn'] = prefs.getString(_asynPathKey) ?? '/admin/asyn_post.html';
@@ -54,15 +58,17 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     });
   }
 
-  Future<void> _saveConfig(String ip, Map<String, String> paths) async {
+  Future<void> _saveConfig(String ip, String port, Map<String, String> paths) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_serverIpKey, ip);
+    await prefs.setString(_serverPortKey, port);
     await prefs.setString(_userPathKey, paths['user']!);
     await prefs.setString(_adminPathKey, paths['admin']!);
     await prefs.setString(_asynPathKey, paths['asyn']!);
     await prefs.setString(_qlPathKey, paths['ql']!);
     setState(() {
       _serverIp = ip;
+      _serverPort = port;
       _entryPaths.addAll(paths);
     });
   }
@@ -74,12 +80,22 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     return trimmed.startsWith('/') ? trimmed : '/$trimmed';
   }
 
+  /// 构建基础 URL：非 80 端口时显示端口号
+  String _buildBaseUrl() {
+    final port = _serverPort.trim();
+    if (port.isEmpty || port == '80') {
+      return 'http://$_serverIp';
+    }
+    return 'http://$_serverIp:$port';
+  }
+
   void _openEntry(Map<String, dynamic> entry) {
     final path = _normalizePath(_entryPaths[entry['id']] ?? '/');
     _channel.invokeMethod('openWebView', {
-      'url': 'http://$_serverIp$path',
+      'url': '${_buildBaseUrl()}$path',
       'title': entry['name'],
       'serverIp': _serverIp,
+      'serverPort': _serverPort,
       'userPath': _normalizePath(_entryPaths['user']!),
       'adminPath': _normalizePath(_entryPaths['admin']!),
       'asynPath': _normalizePath(_entryPaths['asyn']!),
@@ -95,6 +111,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
 
   void _showConfigDialog() {
     _ipController.text = _serverIp;
+    _portController.text = _serverPort;
     _pathControllers.clear();
     for (final id in _entryPaths.keys) {
       _pathControllers[id] = TextEditingController(text: _entryPaths[id]);
@@ -120,6 +137,17 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
                 ),
               ),
               SizedBox(height: context.spacingMedium),
+              TextField(
+                controller: _portController,
+                decoration: InputDecoration(
+                  labelText: '端口',
+                  hintText: '例如: 80',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(context.cardRadius)),
+                ),
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              ),
+              SizedBox(height: context.spacingMedium),
               _buildPathField('user', '用户端路径', '例如: /', isDark),
               SizedBox(height: context.spacingMedium),
               _buildPathField('admin', '管理端路径', '例如: /admin', isDark),
@@ -138,11 +166,19 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
               if (ip.isEmpty) {
                 return;
               }
+              var port = _portController.text.trim();
+              if (port.isEmpty) {
+                port = '80';
+              }
+              final portNumber = int.tryParse(port);
+              if (portNumber == null || portNumber < 1 || portNumber > 65535) {
+                return;
+              }
               final paths = <String, String>{};
               for (final id in _entryPaths.keys) {
                 paths[id] = _normalizePath(_pathControllers[id]?.text ?? _entryPaths[id]!);
               }
-              await _saveConfig(ip, paths);
+              await _saveConfig(ip, port, paths);
               if (mounted) Navigator.pop(context);
             },
             child: const Text('保存'),
@@ -238,7 +274,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('服务器地址', style: TextStyle(fontSize: context.fontMedium, fontWeight: FontWeight.w500, color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary)),
-              Text(_serverIp, style: TextStyle(fontSize: context.fontBody, color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary)),
+              Text('$_serverIp:$_serverPort', style: TextStyle(fontSize: context.fontBody, color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary)),
             ],
           ),
         ),
@@ -313,6 +349,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
   @override
   void dispose() {
     _ipController.dispose();
+    _portController.dispose();
     for (final controller in _pathControllers.values) {
       controller.dispose();
     }
