@@ -269,7 +269,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  childAspectRatio: 1.7,
+                  childAspectRatio: 2.0,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
                 ),
@@ -328,10 +328,11 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.08), blurRadius: 10, offset: const Offset(0, 4))],
         ),
         padding: ResponsiveUtils.padding(context, all: 10),
-        child: Column(
+        child: Stack(
           children: [
-            Align(
-              alignment: Alignment.topRight,
+            Positioned(
+              top: 0,
+              right: 0,
               child: IconButton(
                 icon: Icon(Icons.edit, color: primaryColor, size: context.iconXSmall),
                 onPressed: () => _showEditDialog(index: index),
@@ -339,9 +340,9 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
                 constraints: const BoxConstraints(),
               ),
             ),
-            Expanded(
+            Center(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.language, color: primaryColor, size: context.iconSmall),
                   SizedBox(height: context.spacingXSmall),
