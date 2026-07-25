@@ -247,6 +247,38 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     );
   }
 
+  void _showWebsiteOptions(int index) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(context.cardRadius))),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.edit, color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary),
+              title: Text('编辑', style: TextStyle(color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary)),
+              onTap: () {
+                Navigator.pop(context);
+                _showEditDialog(index: index);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: Colors.red),
+              title: const Text('删除', style: TextStyle(color: Colors.red)),
+              onTap: () {
+                Navigator.pop(context);
+                _confirmDelete(index);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -320,6 +352,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     color: Colors.transparent,
     child: InkWell(
       onTap: () => _openWebsite(website),
+      onLongPress: () => _showWebsiteOptions(index),
       borderRadius: BorderRadius.circular(context.cardRadius),
       child: Container(
         decoration: BoxDecoration(
@@ -328,37 +361,23 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.08), blurRadius: 10, offset: const Offset(0, 4))],
         ),
         padding: ResponsiveUtils.padding(context, all: 10),
-        child: Stack(
-          children: [
-            Positioned(
-              top: 0,
-              right: 0,
-              child: IconButton(
-                icon: Icon(Icons.edit, color: primaryColor, size: context.iconXSmall),
-                onPressed: () => _showEditDialog(index: index),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.language, color: primaryColor, size: context.iconSmall),
+              SizedBox(height: context.spacingXSmall),
+              Text(website.name, style: TextStyle(fontSize: context.fontMedium, fontWeight: FontWeight.w600, color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary), textAlign: TextAlign.center),
+              SizedBox(height: context.spacingXSmall / 2),
+              Text(
+                website.fullUrl,
+                style: TextStyle(fontSize: context.fontSmall, color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
               ),
-            ),
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.language, color: primaryColor, size: context.iconSmall),
-                  SizedBox(height: context.spacingXSmall),
-                  Text(website.name, style: TextStyle(fontSize: context.fontMedium, fontWeight: FontWeight.w600, color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary), textAlign: TextAlign.center),
-                  SizedBox(height: context.spacingXSmall / 2),
-                  Text(
-                    website.fullUrl,
-                    style: TextStyle(fontSize: context.fontSmall, color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     ),
@@ -399,7 +418,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
           ],
         ),
         SizedBox(height: context.spacingSmall),
-        Text('• 点击卡片打开对应网站\n• 每个网站独立配置名称、IP、端口和路径\n• 不同网站使用不同 WebView Activity，互不干扰',
+        Text('• 点击卡片打开对应网站\n• 长按卡片可编辑或删除网站\n• 每个网站独立配置名称、IP、端口和路径\n• 不同网站使用不同 WebView Activity，互不干扰',
           style: TextStyle(fontSize: context.fontSmall, color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary, height: 1.6)),
       ],
     ),
