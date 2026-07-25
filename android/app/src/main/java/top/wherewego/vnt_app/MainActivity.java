@@ -173,12 +173,6 @@ public class MainActivity extends FlutterActivity {
             if (call.method.equals("openWebView")) {
                 String url = call.argument("url");
                 String title = call.argument("title");
-                String serverIp = call.argument("serverIp");
-                String serverPort = call.argument("serverPort");
-                String userPath = call.argument("userPath");
-                String adminPath = call.argument("adminPath");
-                String asynPath = call.argument("asynPath");
-                String qlPath = call.argument("qlPath");
 
                 if (url == null) {
                     result.error("INVALID_ARGUMENT", "url is required", null);
@@ -188,12 +182,6 @@ public class MainActivity extends FlutterActivity {
                 Intent intent = new Intent(this, IntranetWebActivity.class);
                 intent.putExtra(IntranetWebActivity.EXTRA_URL, url);
                 intent.putExtra(IntranetWebActivity.EXTRA_TITLE, title != null ? title : "内网访问");
-                intent.putExtra(IntranetWebActivity.EXTRA_SERVER_IP, serverIp != null ? serverIp : "127.0.0.1");
-                intent.putExtra(IntranetWebActivity.EXTRA_SERVER_PORT, serverPort != null ? serverPort : "80");
-                intent.putExtra(IntranetWebActivity.EXTRA_USER_PATH, userPath != null ? userPath : "/");
-                intent.putExtra(IntranetWebActivity.EXTRA_ADMIN_PATH, adminPath != null ? adminPath : "/admin");
-                intent.putExtra(IntranetWebActivity.EXTRA_ASYN_PATH, asynPath != null ? asynPath : "/admin/asyn_post.html");
-                intent.putExtra(IntranetWebActivity.EXTRA_QL_PATH, qlPath != null ? qlPath : "/admin/ql_scheduler.html");
                 startActivityForResult(intent, WEBVIEW_REQUEST_CODE);
                 result.success(null);
             } else {
