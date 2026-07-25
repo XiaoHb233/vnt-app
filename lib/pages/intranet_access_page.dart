@@ -269,7 +269,7 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  childAspectRatio: 1.35,
+                  childAspectRatio: 1.7,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
                 ),
@@ -327,13 +327,13 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
           borderRadius: BorderRadius.circular(context.cardRadius),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.08), blurRadius: 10, offset: const Offset(0, 4))],
         ),
-        padding: ResponsiveUtils.padding(context, all: 12),
+        padding: ResponsiveUtils.padding(context, all: 10),
         child: Column(
           children: [
             Align(
               alignment: Alignment.topRight,
               child: IconButton(
-                icon: Icon(Icons.edit, color: primaryColor, size: context.iconSmall),
+                icon: Icon(Icons.edit, color: primaryColor, size: context.iconXSmall),
                 onPressed: () => _showEditDialog(index: index),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
@@ -343,8 +343,8 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.language, color: primaryColor, size: context.iconMedium),
-                  SizedBox(height: context.spacingSmall),
+                  Icon(Icons.language, color: primaryColor, size: context.iconSmall),
+                  SizedBox(height: context.spacingXSmall),
                   Text(website.name, style: TextStyle(fontSize: context.fontMedium, fontWeight: FontWeight.w600, color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary), textAlign: TextAlign.center),
                   SizedBox(height: context.spacingXSmall / 2),
                   Text(
