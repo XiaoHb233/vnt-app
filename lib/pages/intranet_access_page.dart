@@ -264,7 +264,18 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
               SizedBox(height: context.spacingLarge),
               _buildSectionTitle(primaryColor, '网站列表'),
               SizedBox(height: context.spacingSmall),
-              ..._websites.asMap().entries.map((e) => _buildWebsiteCard(e.value, e.key, isDark, primaryColor)),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 1.35,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                itemCount: _websites.length,
+                itemBuilder: (context, index) => _buildWebsiteCard(_websites[index], index, isDark, primaryColor),
+              ),
               SizedBox(height: context.spacingMedium),
               _buildAddButton(isDark, primaryColor),
               SizedBox(height: context.spacingLarge),
@@ -305,50 +316,48 @@ class IntranetAccessPageState extends State<IntranetAccessPage> {
     child: Text(title, style: TextStyle(fontSize: context.fontBody, fontWeight: FontWeight.w600, color: color)),
   );
 
-  Widget _buildWebsiteCard(_WebsiteConfig website, int index, bool isDark, Color primaryColor) => Padding(
-    padding: EdgeInsets.only(bottom: context.spacingSmall),
-    child: Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _openWebsite(website),
-        borderRadius: BorderRadius.circular(context.cardRadius),
-        child: Container(
-          decoration: BoxDecoration(
-            color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
-            borderRadius: BorderRadius.circular(context.cardRadius),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.08), blurRadius: 10, offset: const Offset(0, 4))],
-          ),
-          padding: ResponsiveUtils.padding(context, all: 16),
-          child: Row(
-            children: [
-              Container(
-                width: context.listItemIconContainerSize,
-                height: context.listItemIconContainerSize,
-                decoration: BoxDecoration(color: primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(context.cardRadius)),
-                child: Icon(Icons.language, color: primaryColor, size: context.iconSmall),
-              ),
-              SizedBox(width: context.spacingMedium),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(website.name, style: TextStyle(fontSize: context.fontMedium, fontWeight: FontWeight.w600, color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary)),
-                    SizedBox(height: context.spacingXSmall / 2),
-                    Text(
-                      website.fullUrl,
-                      style: TextStyle(fontSize: context.fontSmall, color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
+  Widget _buildWebsiteCard(_WebsiteConfig website, int index, bool isDark, Color primaryColor) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      onTap: () => _openWebsite(website),
+      borderRadius: BorderRadius.circular(context.cardRadius),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+          borderRadius: BorderRadius.circular(context.cardRadius),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.08), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        padding: ResponsiveUtils.padding(context, all: 12),
+        child: Column(
+          children: [
+            Align(
+              alignment: Alignment.topRight,
+              child: IconButton(
                 icon: Icon(Icons.edit, color: primaryColor, size: context.iconSmall),
                 onPressed: () => _showEditDialog(index: index),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
               ),
-            ],
-          ),
+            ),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.language, color: primaryColor, size: context.iconMedium),
+                  SizedBox(height: context.spacingSmall),
+                  Text(website.name, style: TextStyle(fontSize: context.fontMedium, fontWeight: FontWeight.w600, color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary), textAlign: TextAlign.center),
+                  SizedBox(height: context.spacingXSmall / 2),
+                  Text(
+                    website.fullUrl,
+                    style: TextStyle(fontSize: context.fontSmall, color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     ),
