@@ -131,9 +131,38 @@ public class IntranetWebActivity extends Activity {
         }
 
         webView.setWebViewClient(new WebViewClient() {
+            // 兼容 Android 5.0-6.0（API 21-23）
+            @SuppressWarnings("deprecation")
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                return handleUrlLoading(Uri.parse(url));
+            }
+
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                return false;
+                return handleUrlLoading(request.getUrl());
+            }
+
+            /**
+             * 统一处理 URL 加载：http/https 在 WebView 内打开，其他 scheme 交给外部 App
+             */
+            private boolean handleUrlLoading(Uri uri) {
+                String scheme = uri.getScheme();
+
+                // http/https 继续在 WebView 内加载
+                if ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme)) {
+                    return false;
+                }
+
+                // 其他 scheme（如 imeituan://、alipays://、weixin:// 等）交给外部 App 处理
+                try {
+                    Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                    startActivity(intent);
+                } catch (Exception e) {
+                    Log.e(TAG, "无法打开外部链接: " + uri, e);
+                    showToast("无法打开该链接，未找到可处理的应用");
+                }
+                return true;
             }
 
             @Override
